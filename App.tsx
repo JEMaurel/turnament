@@ -182,19 +182,57 @@ const AppointmentModal: React.FC<{
     );
 };
 
-const PatientRegistryModal: React.FC<{isOpen: boolean; onClose: () => void; patients: Patient[]}> = ({ isOpen, onClose, patients }) => (
-    <Modal isOpen={isOpen} onClose={onClose} title="Registro de Pacientes">
-        <div className="max-h-[60vh] overflow-y-auto">
-            <ul className="space-y-2">
-                {patients.map(patient => (
-                    <li key={patient.id} className="p-3 bg-slate-700 rounded-md">
-                        {patient.name}
-                    </li>
-                ))}
-            </ul>
-        </div>
-    </Modal>
-);
+const PatientRegistryModal: React.FC<{isOpen: boolean; onClose: () => void; patients: Patient[]}> = ({ isOpen, onClose, patients }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredPatients = useMemo(() => {
+        if (!searchTerm) {
+            return patients;
+        }
+        return patients.filter(patient =>
+            patient.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [patients, searchTerm]);
+    
+    useEffect(() => {
+        if (!isOpen) {
+            setSearchTerm('');
+        }
+    }, [isOpen]);
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Registro de Pacientes">
+            <div className="mb-4 relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                    </svg>
+                </span>
+                <input
+                    type="text"
+                    placeholder="Buscar paciente..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 pl-10 pr-4 focus:ring-cyan-500 focus:border-cyan-500"
+                    aria-label="Buscar Paciente"
+                />
+            </div>
+            <div className="max-h-[50vh] overflow-y-auto pr-2">
+                {filteredPatients.length > 0 ? (
+                    <ul className="space-y-2">
+                        {filteredPatients.map(patient => (
+                            <li key={patient.id} className="p-3 bg-slate-700 rounded-md">
+                                {patient.name}
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-slate-400 text-center py-4">No se encontraron pacientes.</p>
+                )}
+            </div>
+        </Modal>
+    );
+};
 
 const AiAssistantModal: React.FC<{isOpen: boolean; onClose: () => void; patients: Patient[]; appointments: Appointment[];}> = ({isOpen, onClose, patients, appointments}) => {
     const [question, setQuestion] = useState('');
