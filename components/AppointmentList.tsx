@@ -96,7 +96,8 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
     // FIX: Using .reduce for more robust type inference compared to a .map().filter() chain.
     type ScheduledItem = { type: 'filled'; data: Appointment & { patientName: string } } | { type: 'empty'; time: string };
 
-    return sortedTimes.reduce<ScheduledItem[]>((acc, time) => {
+    // FIX: Explicitly typing the accumulator and initial value to prevent subtle type inference errors.
+    return sortedTimes.reduce((acc: ScheduledItem[], time) => {
       const appointment = appointmentsByTime.get(time);
       if (appointment) {
         acc.push({ type: 'filled' as const, data: appointment });
@@ -104,7 +105,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
         acc.push({ type: 'empty' as const, time: time });
       }
       return acc;
-    }, []);
+    }, [] as ScheduledItem[]);
 
   }, [selectedDate, appointments]);
 
