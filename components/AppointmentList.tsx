@@ -4,7 +4,8 @@ import type { Appointment, Patient } from '../types';
 interface AppointmentListProps {
   selectedDate: Date | null;
   appointments: (Appointment & { patientName: string })[];
-  onSelectAppointment: (appointment: Appointment) => void;
+  // FIX: Updated the type to be more specific to the data passed within this component.
+  onSelectAppointment: (appointment: Appointment & { patientName: string }) => void;
   onDeleteAppointment: (appointmentId: string) => void;
   onAddNewAppointment: (time?: string) => void;
   onHighlightPatient: (patientId: string) => void;
@@ -12,7 +13,8 @@ interface AppointmentListProps {
 
 const AppointmentRow: React.FC<{ 
   appointment: Appointment & { patientName: string }; 
-  onSelectAppointment: (appointment: Appointment) => void; 
+  // FIX: Updated the type to be more specific to the data passed within this component.
+  onSelectAppointment: (appointment: Appointment & { patientName: string }) => void; 
   onDeleteAppointment: (appointmentId: string) => void;
   onHighlightPatient: (patientId: string) => void;
 }> = ({ appointment, onSelectAppointment, onDeleteAppointment, onHighlightPatient }) => {
