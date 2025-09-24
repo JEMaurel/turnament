@@ -301,8 +301,8 @@ export default function App() {
     const year = currentDate.getFullYear();
     return appointments
       .filter(app => {
-        const appDate = new Date(app.date);
-        return app.patientId === selectedPatientId && appDate.getMonth() === month && appDate.getFullYear() === year;
+        const appDate = new Date(`${app.date}T00:00:00`); // Ensure correct date parsing across timezones
+        return app.patientId === selectedPatientId && appDate.getUTCMonth() === month && appDate.getUTCFullYear() === year;
       })
       .map(app => app.date);
   }, [selectedPatientId, appointments, currentDate]);
@@ -317,6 +317,10 @@ export default function App() {
       setSelectedPatientId(appointment.patientId);
       setEditingAppointment(appointment);
       setAppointmentModalOpen(true);
+  }, []);
+
+  const handleHighlightPatient = useCallback((patientId: string) => {
+    setSelectedPatientId(prevId => (prevId === patientId ? null : patientId));
   }, []);
 
   const handleOpenNewAppointment = useCallback((time?: string) => {
@@ -401,6 +405,7 @@ export default function App() {
             onSelectAppointment={handleSelectAppointment}
             onDeleteAppointment={handleDeleteAppointment}
             onAddNewAppointment={handleOpenNewAppointment}
+            onHighlightPatient={handleHighlightPatient}
           />
         </div>
       </main>

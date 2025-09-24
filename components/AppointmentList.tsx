@@ -7,17 +7,36 @@ interface AppointmentListProps {
   onSelectAppointment: (appointment: Appointment) => void;
   onDeleteAppointment: (appointmentId: string) => void;
   onAddNewAppointment: (time?: string) => void;
+  onHighlightPatient: (patientId: string) => void;
 }
 
-const AppointmentRow: React.FC<{ appointment: Appointment & { patientName: string }; onSelectAppointment: (appointment: Appointment) => void; onDeleteAppointment: (appointmentId: string) => void; }> = ({ appointment, onSelectAppointment, onDeleteAppointment }) => {
+const AppointmentRow: React.FC<{ 
+  appointment: Appointment & { patientName: string }; 
+  onSelectAppointment: (appointment: Appointment) => void; 
+  onDeleteAppointment: (appointmentId: string) => void;
+  onHighlightPatient: (patientId: string) => void;
+}> = ({ appointment, onSelectAppointment, onDeleteAppointment, onHighlightPatient }) => {
   return (
     <div 
-      className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center p-3 bg-slate-800 rounded-lg hover:bg-slate-700 cursor-pointer transition-colors"
+      className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center p-2 bg-slate-800 rounded-lg hover:bg-slate-700 cursor-pointer transition-colors"
       onClick={() => onSelectAppointment(appointment)}
     >
       <div className="font-mono text-lg text-cyan-400">{appointment.time}</div>
-      <div className="font-semibold text-white">{appointment.patientName}</div>
-      <div className="text-slate-400">{appointment.session}</div>
+      <div className="font-semibold text-white truncate">{appointment.patientName}</div>
+      <div className="flex items-center gap-2 text-slate-400">
+        <span>{appointment.session}</span>
+        <button
+            onClick={(e) => {
+                e.stopPropagation();
+                onHighlightPatient(appointment.patientId);
+            }}
+            className="p-1 rounded-full hover:bg-slate-600 transition-colors"
+            aria-label={`Resaltar turnos de ${appointment.patientName}`}
+            title={`Resaltar todos los turnos de ${appointment.patientName} en el calendario`}
+        >
+            <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full"></div>
+        </button>
+      </div>
       <div className="flex justify-end items-center gap-2">
          <button 
           onClick={(e) => { e.stopPropagation(); onSelectAppointment(appointment); }} 
@@ -40,7 +59,7 @@ const AppointmentRow: React.FC<{ appointment: Appointment & { patientName: strin
 
 const EmptySlotRow: React.FC<{time: string; onAddNewAppointment: (time: string) => void}> = ({ time, onAddNewAppointment }) => (
     <div
-        className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center p-3 bg-slate-800/50 rounded-lg border-2 border-dashed border-slate-700 hover:border-cyan-500 hover:bg-slate-700/50 cursor-pointer transition-all"
+        className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center p-2 bg-slate-800/50 rounded-lg border-2 border-dashed border-slate-700 hover:border-cyan-500 hover:bg-slate-700/50 cursor-pointer transition-all"
         onClick={() => onAddNewAppointment(time)}
         role="button"
         aria-label={`Agendar turno a las ${time}`}
@@ -54,7 +73,7 @@ const EmptySlotRow: React.FC<{time: string; onAddNewAppointment: (time: string) 
 );
 
 
-const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment }) => {
+const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient }) => {
 
   const scheduledItems = useMemo(() => {
     if (!selectedDate) return [];
@@ -74,17 +93,18 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
     const allTimes = new Set([...baseSlots, ...appointments.map(app => app.time)]);
     const sortedTimes = Array.from(allTimes).sort((a, b) => a.localeCompare(b));
 
-    return sortedTimes.map(time => {
+    // FIX: Using .reduce for more robust type inference compared to a .map().filter() chain.
+    type ScheduledItem = { type: 'filled'; data: Appointment & { patientName: string } } | { type: 'empty'; time: string };
+
+    return sortedTimes.reduce<ScheduledItem[]>((acc, time) => {
       const appointment = appointmentsByTime.get(time);
       if (appointment) {
-        return { type: 'filled' as const, data: appointment, time: appointment.time };
+        acc.push({ type: 'filled' as const, data: appointment });
+      } else if (baseSlots.includes(time)) {
+        acc.push({ type: 'empty' as const, time: time });
       }
-      if (baseSlots.includes(time)) {
-        return { type: 'empty' as const, time: time };
-      }
-      return null;
-      // FIX: Use a type guard to filter out nulls so TypeScript can infer the correct type. `.filter(Boolean)` does not provide type narrowing.
-    }).filter((item): item is NonNullable<typeof item> => !!item);
+      return acc;
+    }, []);
 
   }, [selectedDate, appointments]);
 
@@ -101,7 +121,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
           </button>
         )}
       </div>
-      <div className="flex-grow overflow-y-auto space-y-3 pr-2">
+      <div className="flex-grow overflow-y-auto space-y-2 pr-2">
         {selectedDate && scheduledItems.length > 0 ? (
           scheduledItems.map(item => {
             if (item.type === 'filled') {
@@ -111,6 +131,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
                   appointment={item.data} 
                   onSelectAppointment={onSelectAppointment}
                   onDeleteAppointment={onDeleteAppointment}
+                  onHighlightPatient={onHighlightPatient}
                 />
               );
             }
