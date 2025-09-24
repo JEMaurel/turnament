@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { Appointment, Patient } from '../types';
 
 interface AppointmentListProps {
@@ -7,7 +6,7 @@ interface AppointmentListProps {
   appointments: (Appointment & { patientName: string })[];
   onSelectAppointment: (appointment: Appointment) => void;
   onDeleteAppointment: (appointmentId: string) => void;
-  onAddNewAppointment: () => void;
+  onAddNewAppointment: (time?: string) => void;
 }
 
 const AppointmentRow: React.FC<{ appointment: Appointment & { patientName: string }; onSelectAppointment: (appointment: Appointment) => void; onDeleteAppointment: (appointmentId: string) => void; }> = ({ appointment, onSelectAppointment, onDeleteAppointment }) => {
@@ -39,8 +38,56 @@ const AppointmentRow: React.FC<{ appointment: Appointment & { patientName: strin
   );
 };
 
+const EmptySlotRow: React.FC<{time: string; onAddNewAppointment: (time: string) => void}> = ({ time, onAddNewAppointment }) => (
+    <div
+        className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center p-3 bg-slate-800/50 rounded-lg border-2 border-dashed border-slate-700 hover:border-cyan-500 hover:bg-slate-700/50 cursor-pointer transition-all"
+        onClick={() => onAddNewAppointment(time)}
+        role="button"
+        aria-label={`Agendar turno a las ${time}`}
+    >
+        <div className="font-mono text-lg text-slate-500">{time}</div>
+        <div className="text-slate-400 col-span-2">Disponible</div>
+        <div className="flex justify-end">
+             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+        </div>
+    </div>
+);
+
 
 const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment }) => {
+
+  const scheduledItems = useMemo(() => {
+    if (!selectedDate) return [];
+
+    const scheduleStartHour = 11;
+    const scheduleEndHour = 18;
+
+    const baseSlots = [];
+    for (let h = scheduleStartHour; h <= scheduleEndHour; h++) {
+      baseSlots.push(`${String(h).padStart(2, '0')}:00`);
+      if (h < scheduleEndHour) {
+        baseSlots.push(`${String(h).padStart(2, '0')}:30`);
+      }
+    }
+
+    const appointmentsByTime = new Map(appointments.map(app => [app.time, app]));
+    const allTimes = new Set([...baseSlots, ...appointments.map(app => app.time)]);
+    const sortedTimes = Array.from(allTimes).sort((a, b) => a.localeCompare(b));
+
+    return sortedTimes.map(time => {
+      const appointment = appointmentsByTime.get(time);
+      if (appointment) {
+        return { type: 'filled' as const, data: appointment, time: appointment.time };
+      }
+      if (baseSlots.includes(time)) {
+        return { type: 'empty' as const, time: time };
+      }
+      return null;
+      // FIX: Use a type guard to filter out nulls so TypeScript can infer the correct type. `.filter(Boolean)` does not provide type narrowing.
+    }).filter((item): item is NonNullable<typeof item> => !!item);
+
+  }, [selectedDate, appointments]);
+
   return (
     <div className="p-4 bg-slate-800/50 rounded-lg shadow-lg h-full flex flex-col">
       <div className="flex justify-between items-center mb-4">
@@ -48,25 +95,36 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
           Turnos para: <span className="text-cyan-400">{selectedDate ? selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Ningún día seleccionado'}</span>
         </h2>
         {selectedDate && (
-          <button onClick={onAddNewAppointment} className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+          <button onClick={() => onAddNewAppointment()} className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
             <span>Nuevo Turno</span>
           </button>
         )}
       </div>
       <div className="flex-grow overflow-y-auto space-y-3 pr-2">
-        {selectedDate && appointments.length > 0 ? (
-          appointments.sort((a,b) => a.time.localeCompare(b.time)).map(app => (
-            <AppointmentRow 
-              key={app.id} 
-              appointment={app} 
-              onSelectAppointment={onSelectAppointment}
-              onDeleteAppointment={onDeleteAppointment}
-            />
-          ))
+        {selectedDate && scheduledItems.length > 0 ? (
+          scheduledItems.map(item => {
+            if (item.type === 'filled') {
+              return (
+                <AppointmentRow 
+                  key={item.data.id} 
+                  appointment={item.data} 
+                  onSelectAppointment={onSelectAppointment}
+                  onDeleteAppointment={onDeleteAppointment}
+                />
+              );
+            }
+            return (
+              <EmptySlotRow 
+                key={item.time}
+                time={item.time}
+                onAddNewAppointment={onAddNewAppointment}
+              />
+            );
+          })
         ) : (
           <div className="text-center text-slate-400 py-10">
-            {selectedDate ? "No hay turnos para este día." : "Selecciona un día en el calendario para ver los turnos."}
+            {selectedDate ? "No hay turnos para este día. Haz clic en un espacio para agregar uno." : "Selecciona un día en el calendario para ver los turnos."}
           </div>
         )}
       </div>

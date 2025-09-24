@@ -35,9 +35,10 @@ export const getAiAssistance = async (
   `;
 
   try {
+    // FIX: Pass context only in systemInstruction and question in contents for correct API usage.
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: `${context}\n\nPregunta: ${question}`,
+      contents: question,
       config: {
         systemInstruction: context,
       }

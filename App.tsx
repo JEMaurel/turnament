@@ -30,8 +30,9 @@ const AppointmentModal: React.FC<{
   existingPatient: Patient | null;
   patients: Patient[];
   selectedDate: Date;
-}> = ({ isOpen, onClose, onSave, existingAppointment, existingPatient, patients, selectedDate }) => {
-    const [time, setTime] = useState('09:00');
+  defaultTime: string;
+}> = ({ isOpen, onClose, onSave, existingAppointment, existingPatient, patients, selectedDate, defaultTime }) => {
+    const [time, setTime] = useState('11:00');
     const [patientName, setPatientName] = useState('');
     const [patientId, setPatientId] = useState<string | null>(null);
     const [session, setSession] = useState('1/10');
@@ -43,30 +44,32 @@ const AppointmentModal: React.FC<{
     const [recurringDays, setRecurringDays] = useState<number[]>([]);
     
     useEffect(() => {
-        if (existingAppointment && existingPatient) {
-            setTime(existingAppointment.time);
-            setPatientName(existingPatient.name);
-            setPatientId(existingPatient.id);
-            setSession(existingAppointment.session);
-            setInsurance(existingPatient.insurance || '');
-            setDoctor(existingPatient.doctor || '');
-            setTreatment(existingPatient.treatment || '');
-            setDiagnosis(existingPatient.diagnosis || '');
-            setObservations(existingPatient.observations || '');
-            setRecurringDays([]);
-        } else {
-            setTime('09:00');
-            setPatientName('');
-            setPatientId(null);
-            setSession('1/10');
-            setInsurance('');
-            setDoctor('');
-            setTreatment('');
-            setDiagnosis('');
-            setObservations('');
-            setRecurringDays([]);
+        if (isOpen) {
+            if (existingAppointment && existingPatient) {
+                setTime(existingAppointment.time);
+                setPatientName(existingPatient.name);
+                setPatientId(existingPatient.id);
+                setSession(existingAppointment.session);
+                setInsurance(existingPatient.insurance || '');
+                setDoctor(existingPatient.doctor || '');
+                setTreatment(existingPatient.treatment || '');
+                setDiagnosis(existingPatient.diagnosis || '');
+                setObservations(existingPatient.observations || '');
+                setRecurringDays([]);
+            } else {
+                setTime(defaultTime);
+                setPatientName('');
+                setPatientId(null);
+                setSession('1/10');
+                setInsurance('');
+                setDoctor('');
+                setTreatment('');
+                setDiagnosis('');
+                setObservations('');
+                setRecurringDays([]);
+            }
         }
-    }, [existingAppointment, existingPatient, isOpen]);
+    }, [existingAppointment, existingPatient, isOpen, defaultTime]);
 
     const handlePatientSelect = (name: string) => {
         setPatientName(name);
@@ -278,6 +281,7 @@ export default function App() {
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [isPatientRegistryOpen, setPatientRegistryOpen] = useState(false);
   const [isAiModalOpen, setAiModalOpen] = useState(false);
+  const [defaultAppointmentTime, setDefaultAppointmentTime] = useState('11:00');
   
   // Memoized derived state
   const appointmentsForSelectedDay = useMemo(() => {
@@ -315,11 +319,12 @@ export default function App() {
       setAppointmentModalOpen(true);
   }, []);
 
-  const handleOpenNewAppointment = () => {
+  const handleOpenNewAppointment = useCallback((time?: string) => {
     if (!selectedDate) return;
     setEditingAppointment(null);
+    setDefaultAppointmentTime(time || '11:00');
     setAppointmentModalOpen(true);
-  };
+  }, [selectedDate]);
 
   const handleSaveAppointment = (appointmentData: Appointment, patientData: Patient, recurringDays: number[]) => {
       // Update or create patient
@@ -409,6 +414,7 @@ export default function App() {
         existingPatient={editingAppointment ? patients.find(p => p.id === editingAppointment.patientId) || null : null}
         patients={patients}
         selectedDate={selectedDate || new Date()}
+        defaultTime={defaultAppointmentTime}
       />
       <PatientRegistryModal 
         isOpen={isPatientRegistryOpen}
