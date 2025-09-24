@@ -1,0 +1,5 @@
+{
+  "name": "Consultorio Virtual",
+  "description": "Una aplicación web para gestionar turnos de pacientes en un consultorio privado. Incluye un calendario interactivo, gestión de datos de pacientes, y un asistente de IA para consultas.",
+  "requestFramePermissions": []
+}

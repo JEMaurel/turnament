@@ -1,0 +1,18 @@
+
+export interface Patient {
+  id: string;
+  name: string;
+  insurance?: string;
+  doctor?: string;
+  treatment?: string;
+  diagnosis?: string;
+  observations?: string;
+}
+
+export interface Appointment {
+  id: string;
+  patientId: string;
+  date: string; // ISO string for date e.g., "2024-07-28"
+  time: string; // e.g., "09:00"
+  session: string; // e.g., "5/10"
+}
