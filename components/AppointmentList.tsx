@@ -98,19 +98,18 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
     const allTimes = new Set([...baseSlots, ...appointments.map(app => app.time)]);
     const sortedTimes = Array.from(allTimes).sort((a, b) => a.localeCompare(b));
 
-    // FIX: Replaced flatMap with a more explicit map/filter pattern to ensure type safety across different environments.
-    return sortedTimes
-      .map((time): ScheduledItem | null => {
-        const appointment = appointmentsByTime.get(time);
-        if (appointment) {
-          return { type: 'filled', data: appointment };
-        }
-        if (baseSlots.includes(time)) {
-          return { type: 'empty', time };
-        }
-        return null;
-      })
-      .filter((item): item is ScheduledItem => item !== null);
+    // FIX: Switched from a map/filter chain to reduce for creating the scheduled items.
+    // This approach is more robust against potential type inference issues with type guards
+    // across different TypeScript versions or build environments, addressing the reported error.
+    return sortedTimes.reduce<ScheduledItem[]>((acc, time) => {
+      const appointment = appointmentsByTime.get(time);
+      if (appointment) {
+        acc.push({ type: 'filled', data: appointment });
+      } else if (baseSlots.includes(time)) {
+        acc.push({ type: 'empty', time });
+      }
+      return acc;
+    }, []);
   }, [selectedDate, appointments]);
 
   return (
