@@ -98,19 +98,19 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
     const allTimes = new Set([...baseSlots, ...appointments.map(app => app.time)]);
     const sortedTimes = Array.from(allTimes).sort((a, b) => a.localeCompare(b));
 
-    // FIX: The previous map/filter implementation had a type inference issue in some environments.
-    // Replaced with `flatMap` for a more robust and concise way to generate the list,
-    // ensuring that only valid ScheduledItem objects are returned in the final array.
-    return sortedTimes.flatMap((time): ScheduledItem[] => {
+    // FIX: Replaced flatMap with a more explicit map/filter pattern to ensure type safety across different environments.
+    return sortedTimes
+      .map((time): ScheduledItem | null => {
         const appointment = appointmentsByTime.get(time);
         if (appointment) {
-          return [{ type: 'filled', data: appointment }];
+          return { type: 'filled', data: appointment };
         }
         if (baseSlots.includes(time)) {
-          return [{ type: 'empty', time }];
+          return { type: 'empty', time };
         }
-        return [];
-      });
+        return null;
+      })
+      .filter((item): item is ScheduledItem => item !== null);
   }, [selectedDate, appointments]);
 
   return (
