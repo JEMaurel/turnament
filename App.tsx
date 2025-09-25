@@ -73,7 +73,7 @@ const AppointmentModal: React.FC<{
 
     const handlePatientSelect = (name: string) => {
         setPatientName(name);
-        const patient = patients.find(p => p.name.toLowerCase() === name.toLowerCase());
+        const patient = patients.find(p => p && p.name && p.name.toLowerCase() === name.toLowerCase());
         if (patient) {
             setPatientId(patient.id);
             setInsurance(patient.insurance || '');
@@ -195,8 +195,10 @@ const PatientRegistryModal: React.FC<{isOpen: boolean; onClose: () => void; pati
         if (!searchTerm) {
             return patients;
         }
+        // FIX: Added checks for `patient` and `patient.name` to prevent crashes
+        // when filtering patients with incomplete data from localStorage.
         return patients.filter(patient =>
-            patient.name.toLowerCase().includes(searchTerm.toLowerCase())
+            patient && patient.name && patient.name.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [patients, searchTerm]);
     

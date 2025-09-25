@@ -1,18 +1,23 @@
 import React, { useMemo } from 'react';
 import type { Appointment, Patient } from '../types';
 
+// FIX: Added a specific type alias for an appointment that includes the patient's name.
+// This resolves a subtle type inference issue where the compiler failed to correctly narrow
+// the type of `item.data` within the `scheduledItems.map` function, leading to a type error.
+type AppointmentWithPatientName = Appointment & { patientName: string };
+
 interface AppointmentListProps {
   selectedDate: Date | null;
-  appointments: (Appointment & { patientName: string })[];
-  onSelectAppointment: (appointment: Appointment & { patientName: string }) => void;
+  appointments: AppointmentWithPatientName[];
+  onSelectAppointment: (appointment: AppointmentWithPatientName) => void;
   onDeleteAppointment: (appointmentId: string) => void;
   onAddNewAppointment: (time?: string) => void;
   onHighlightPatient: (patientId: string) => void;
 }
 
 const AppointmentRow: React.FC<{ 
-  appointment: Appointment & { patientName: string }; 
-  onSelectAppointment: (appointment: Appointment & { patientName: string }) => void; 
+  appointment: AppointmentWithPatientName; 
+  onSelectAppointment: (appointment: AppointmentWithPatientName) => void; 
   onDeleteAppointment: (appointmentId: string) => void;
   onHighlightPatient: (patientId: string) => void;
 }> = ({ appointment, onSelectAppointment, onDeleteAppointment, onHighlightPatient }) => {
@@ -72,7 +77,7 @@ const EmptySlotRow: React.FC<{time: string; onAddNewAppointment: (time: string) 
     </div>
 );
 
-type ScheduledItem = { type: 'filled'; data: Appointment & { patientName: string } } | { type: 'empty'; time: string };
+type ScheduledItem = { type: 'filled'; data: AppointmentWithPatientName } | { type: 'empty'; time: string };
 
 const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient }) => {
 
