@@ -313,7 +313,9 @@ export default function App() {
     setSelectedPatientId(null);
   }, []);
   
-  const handleSelectAppointment = useCallback((appointment: Appointment) => {
+  // FIX: The `onSelectAppointment` prop expects a function that takes an appointment with a `patientName`.
+  // The original `Appointment` type was causing a type mismatch.
+  const handleSelectAppointment = useCallback((appointment: Appointment & { patientName: string }) => {
       setSelectedPatientId(appointment.patientId);
       setEditingAppointment(appointment);
       setAppointmentModalOpen(true);

@@ -15,7 +15,9 @@ export const getAiAssistance = async (
     });
 
     if (!response.ok) {
+      // Try to parse the error message from the backend
       const errorData = await response.json().catch(() => ({ error: 'Error desconocido del servidor.' }));
+      // Use the specific error from the backend if available
       throw new Error(errorData.error || `Error del servidor: ${response.status}`);
     }
 
@@ -23,8 +25,9 @@ export const getAiAssistance = async (
     return data.response;
   } catch (error) {
     console.error("Error al contactar al asistente de IA:", error);
+    // Now, this will display the specific message from the server, like "El servidor tiene un error de configuración."
     if (error instanceof Error) {
-        return error.message;
+        return `Error: ${error.message}`;
     }
     return "Hubo un error al procesar tu solicitud. Por favor, intenta de nuevo.";
   }
