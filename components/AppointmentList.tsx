@@ -76,9 +76,9 @@ type ScheduledItem = { type: 'filled'; data: Appointment & { patientName: string
 
 const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient }) => {
 
-  // FIX: Replaced an untyped `reduce` call with a `map` and `filter` chain.
-  // This resolves the error where `item.data` was being inferred as `unknown`
-  // by correctly typing the generated `scheduledItems` array.
+  // FIX: Replaced the implementation for generating scheduledItems to resolve a
+  // type inference issue where item.data was incorrectly inferred as 'unknown'.
+  // This new logic ensures that items are correctly typed before rendering.
   const scheduledItems: ScheduledItem[] = useMemo(() => {
     if (!selectedDate) return [];
 

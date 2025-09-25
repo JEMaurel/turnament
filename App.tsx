@@ -104,13 +104,13 @@ const AppointmentModal: React.FC<{
         onClose();
     };
 
-    const toggleRecurringDay = (dayIndex: number) => {
+    const toggleRecurringDay = (day: number) => {
         setRecurringDays(prev => 
-            prev.includes(dayIndex) ? prev.filter(d => d !== dayIndex) : [...prev, dayIndex]
+            prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
         );
     };
 
-    const weekDays = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+    const weekDays = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={existingAppointment ? 'Editar Turno' : 'Nuevo Turno'}>
@@ -131,12 +131,16 @@ const AppointmentModal: React.FC<{
                     <div>
                         <label className="block text-sm font-medium text-slate-300">Repetir semanalmente los días:</label>
                         <div className="flex gap-2 mt-2">
-                            {weekDays.map((day, index) => (
-                                <button key={index} onClick={() => toggleRecurringDay(index)}
-                                    className={`w-8 h-8 rounded-full font-bold transition-colors ${recurringDays.includes(index) ? 'bg-cyan-500 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}>
-                                    {day}
-                                </button>
-                            ))}
+                            {weekDays.map((day, index) => {
+                                // Mapea el índice del botón (Lun=0) al día de JS (Dom=0, Lun=1)
+                                const jsDay = index === 6 ? 0 : index + 1;
+                                return (
+                                    <button key={index} onClick={() => toggleRecurringDay(jsDay)}
+                                        className={`w-8 h-8 rounded-full font-bold transition-colors ${recurringDays.includes(jsDay) ? 'bg-cyan-500 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}>
+                                        {day}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 )}

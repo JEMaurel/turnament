@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 
 interface CalendarProps {
@@ -9,7 +8,8 @@ interface CalendarProps {
   onMonthChange: (newDate: Date) => void;
 }
 
-const WEEK_DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+// Se cambia el inicio de la semana a Lunes
+const WEEK_DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 const Calendar: React.FC<CalendarProps> = ({ currentDate, selectedDate, onDateClick, highlightedDays, onMonthChange }) => {
   const month = currentDate.getMonth();
@@ -19,7 +19,8 @@ const Calendar: React.FC<CalendarProps> = ({ currentDate, selectedDate, onDateCl
     const firstDayOfMonth = new Date(year, month, 1);
     const lastDayOfMonth = new Date(year, month + 1, 0);
     const daysInMonth = lastDayOfMonth.getDate();
-    const startDayOfWeek = firstDayOfMonth.getDay();
+    // Se ajusta el día de inicio para que Lunes sea 0 y Domingo 6
+    const startDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7;
 
     const grid = [];
     let day = 1;
@@ -59,25 +60,38 @@ const Calendar: React.FC<CalendarProps> = ({ currentDate, selectedDate, onDateCl
         </button>
       </div>
       <div className="grid grid-cols-7 gap-2 text-center">
-        {WEEK_DAYS.map(day => <div key={day} className="font-semibold text-sm text-slate-400">{day}</div>)}
+        {WEEK_DAYS.map((day, index) => 
+            <div key={day} className={`font-semibold text-sm ${index >= 5 ? 'text-slate-500' : 'text-slate-400'}`}>{day}</div>
+        )}
         {calendarGrid.flat().map((date, index) => {
           if (!date) return <div key={`empty-${index}`} />;
           const dateString = date.toISOString().split('T')[0];
           
+          const dayOfWeek = date.getDay();
           const isToday = isSameDay(date, today);
           const isSelected = selectedDate ? isSameDay(date, selectedDate) : false;
           const isHighlighted = highlightedDays.includes(dateString);
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-          let bgClass = 'hover:bg-slate-700';
-          if (isSelected) bgClass = 'bg-cyan-500 text-white';
-          else if (isHighlighted) bgClass = 'bg-indigo-500 text-white';
-          else if (isToday) bgClass = 'bg-slate-600 text-white';
+          let cellClasses = 'p-2 rounded-full cursor-pointer transition-colors duration-200';
+
+          if (isSelected) {
+            cellClasses += ' bg-cyan-500 text-white';
+          } else if (isHighlighted) {
+            cellClasses += ' bg-indigo-500 text-white';
+          } else if (isToday) {
+            cellClasses += ' bg-slate-600 text-white';
+          } else if (isWeekend) {
+            cellClasses += ' text-slate-500 hover:bg-slate-700';
+          } else {
+            cellClasses += ' hover:bg-slate-700';
+          }
 
           return (
             <div
               key={dateString}
               onClick={() => onDateClick(date)}
-              className={`p-2 rounded-full cursor-pointer transition-colors duration-200 ${bgClass}`}
+              className={cellClasses}
             >
               {date.getDate()}
             </div>
