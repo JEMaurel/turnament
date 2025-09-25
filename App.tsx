@@ -25,8 +25,9 @@ const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; chi
 const AppointmentModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onSave: (appointmentData: any, patientData: any, recurringDays: number[]) => void;
-  existingAppointment: Appointment | null;
+  onSave: (appointmentData: Appointment, patientData: Patient, recurringDays: number[]) => void;
+  // FIX: Updated existingAppointment to handle the extended type with patientName.
+  existingAppointment: (Appointment & { patientName: string }) | null;
   existingPatient: Patient | null;
   patients: Patient[];
   selectedDate: Date;
@@ -87,14 +88,14 @@ const AppointmentModal: React.FC<{
     }
 
     const handleSave = () => {
-        const appointmentData = {
+        const appointmentData: Appointment = {
             id: existingAppointment?.id || `app-${Date.now()}`,
             patientId: patientId || `pat-${Date.now()}`,
             date: selectedDate.toISOString().split('T')[0],
             time,
             session,
         };
-        const patientData = {
+        const patientData: Patient = {
             id: patientId || appointmentData.patientId,
             name: patientName,
             insurance, doctor, treatment, diagnosis, observations,
@@ -278,7 +279,8 @@ export default function App() {
 
   // Modal States
   const [isAppointmentModalOpen, setAppointmentModalOpen] = useState(false);
-  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  // FIX: Updated state to hold the extended appointment type which includes patientName.
+  const [editingAppointment, setEditingAppointment] = useState<(Appointment & { patientName: string }) | null>(null);
   const [isPatientRegistryOpen, setPatientRegistryOpen] = useState(false);
   const [isAiModalOpen, setAiModalOpen] = useState(false);
   const [defaultAppointmentTime, setDefaultAppointmentTime] = useState('11:00');
