@@ -4,21 +4,6 @@ import AppointmentList from './components/AppointmentList';
 import type { Patient, Appointment } from './types';
 import { getAiAssistance } from './services/geminiService';
 
-// Initial seed data for first-time use if localStorage is empty
-const seedPatients: Patient[] = [
-  { id: 'p1', name: 'Juan Perez', insurance: 'OSDE', doctor: 'Dr. Garcia', treatment: 'Terapia Cognitiva', diagnosis: 'Ansiedad', observations: 'Progreso favorable.' },
-  { id: 'p2', name: 'Maria Lopez', insurance: 'Swiss Medical', doctor: 'Dr. Martinez', treatment: 'Psicoanálisis', diagnosis: 'Depresión', observations: 'Requiere seguimiento cercano.' },
-  { id: 'p3', name: 'Carlos Sanchez', insurance: 'Galeno', doctor: 'Dr. Garcia', treatment: 'Terapia de Pareja', diagnosis: 'Conflictos de comunicación', observations: '' },
-];
-
-const seedAppointments: Appointment[] = [
-  { id: 'a1', patientId: 'p1', date: new Date().toISOString().split('T')[0], time: '09:00', session: '5/10' },
-  { id: 'a2', patientId: 'p2', date: new Date().toISOString().split('T')[0], time: '10:00', session: '8/12' },
-  { id: 'a3', patientId: 'p1', date: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString().split('T')[0], time: '09:00', session: '6/10' },
-  { id: 'a4', patientId: 'p3', date: new Date(new Date().setDate(new Date().getDate() + 3)).toISOString().split('T')[0], time: '11:00', session: '2/8' },
-];
-
-
 // Modal Components defined within App.tsx to easily access state and handlers
 
 const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode; }> = ({ isOpen, onClose, title, children }) => {
@@ -296,30 +281,24 @@ export default function App() {
   const [patients, setPatients] = useState<Patient[]>(() => {
     try {
       const saved = window.localStorage.getItem('consultorio-patients');
-      // On first load, check if local storage is empty or just an empty array string.
-      if (saved && saved !== '[]') {
-        return JSON.parse(saved);
-      }
-      // If it's empty, seed with initial data.
-      window.localStorage.setItem('consultorio-patients', JSON.stringify(seedPatients));
-      return seedPatients;
+      // Load saved data or default to an empty array.
+      return saved ? JSON.parse(saved) : [];
     } catch (error) {
       console.error("Error loading patients from localStorage:", error);
-      return seedPatients;
+      // If there's an error, start with an empty list to prevent app crash.
+      return [];
     }
   });
 
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
     try {
       const saved = window.localStorage.getItem('consultorio-appointments');
-      if (saved && saved !== '[]') {
-        return JSON.parse(saved);
-      }
-      window.localStorage.setItem('consultorio-appointments', JSON.stringify(seedAppointments));
-      return seedAppointments;
+      // Load saved data or default to an empty array.
+      return saved ? JSON.parse(saved) : [];
     } catch (error) {
       console.error("Error loading appointments from localStorage:", error);
-      return seedAppointments;
+      // If there's an error, start with an empty list to prevent app crash.
+      return [];
     }
   });
 

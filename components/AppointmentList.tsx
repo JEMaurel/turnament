@@ -76,10 +76,10 @@ type ScheduledItem = { type: 'filled'; data: Appointment & { patientName: string
 
 const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient }) => {
 
-  // FIX: Refactored the `useMemo` hook for `scheduledItems` to use `Array.prototype.reduce`.
-  // This provides more robust type inference than the previous `map` and `filter`
-  // chain, resolving an issue where `item.data` was incorrectly typed as `unknown`
-  // within the component's render method.
+  // FIX: Refactored the `useMemo` hook for `scheduledItems` to use a standard `for...of` loop.
+  // This approach provides more explicit and stable type inference than the previous `reduce`
+  // method, which was causing `item.data` to be incorrectly typed, leading to a type error
+  // when passing it to the `AppointmentRow` component.
   const scheduledItems: ScheduledItem[] = useMemo(() => {
     if (!selectedDate) return [];
 
@@ -98,15 +98,16 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
     const allTimes = new Set([...baseSlots, ...appointments.map(app => app.time)]);
     const sortedTimes = Array.from(allTimes).sort((a, b) => a.localeCompare(b));
 
-    return sortedTimes.reduce<ScheduledItem[]>((acc, time) => {
-        const appointment = appointmentsByTime.get(time);
-        if (appointment) {
-          acc.push({ type: 'filled', data: appointment });
-        } else if (baseSlots.includes(time)) {
-          acc.push({ type: 'empty', time });
-        }
-        return acc;
-      }, []);
+    const items: ScheduledItem[] = [];
+    for (const time of sortedTimes) {
+      const appointment = appointmentsByTime.get(time);
+      if (appointment) {
+        items.push({ type: 'filled', data: appointment });
+      } else if (baseSlots.includes(time)) {
+        items.push({ type: 'empty', time });
+      }
+    }
+    return items;
   }, [selectedDate, appointments]);
 
   return (
