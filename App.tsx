@@ -296,7 +296,13 @@ export default function App() {
   const [patients, setPatients] = useState<Patient[]>(() => {
     try {
       const saved = window.localStorage.getItem('consultorio-patients');
-      return saved ? JSON.parse(saved) : seedPatients;
+      // On first load, check if local storage is empty or just an empty array string.
+      if (saved && saved !== '[]') {
+        return JSON.parse(saved);
+      }
+      // If it's empty, seed with initial data.
+      window.localStorage.setItem('consultorio-patients', JSON.stringify(seedPatients));
+      return seedPatients;
     } catch (error) {
       console.error("Error loading patients from localStorage:", error);
       return seedPatients;
@@ -306,7 +312,11 @@ export default function App() {
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
     try {
       const saved = window.localStorage.getItem('consultorio-appointments');
-      return saved ? JSON.parse(saved) : seedAppointments;
+      if (saved && saved !== '[]') {
+        return JSON.parse(saved);
+      }
+      window.localStorage.setItem('consultorio-appointments', JSON.stringify(seedAppointments));
+      return seedAppointments;
     } catch (error) {
       console.error("Error loading appointments from localStorage:", error);
       return seedAppointments;
@@ -436,6 +446,55 @@ export default function App() {
     }
   };
 
+    const handleExportData = () => {
+        const exportData = (data: any[], fileName: string) => {
+            const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+                JSON.stringify(data, null, 2)
+            )}`;
+            const link = document.createElement("a");
+            link.href = jsonString;
+            link.download = fileName;
+            link.click();
+        };
+
+        exportData(patients, "pacientes.json");
+        exportData(appointments, "turnos.json");
+    };
+
+    const handleImportData = (dataType: 'patients' | 'appointments') => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (event) => {
+            const file = (event.target as HTMLInputElement).files?.[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const content = e.target?.result;
+                        if (typeof content === 'string') {
+                            const data = JSON.parse(content);
+                            const confirmationMessage = `¿Estás seguro de que quieres reemplazar tus ${dataType === 'patients' ? 'pacientes' : 'turnos'} actuales con los datos de este archivo? Esta acción no se puede deshacer.`;
+                            if (window.confirm(confirmationMessage)) {
+                                if (dataType === 'patients') {
+                                    setPatients(data as Patient[]);
+                                } else {
+                                    setAppointments(data as Appointment[]);
+                                }
+                                alert('Datos importados correctamente.');
+                            }
+                        }
+                    } catch (error) {
+                        console.error("Error al importar el archivo:", error);
+                        alert("Error: El archivo no es un JSON válido.");
+                    }
+                };
+                reader.readAsText(file);
+            }
+        };
+        input.click();
+    };
+
   // Resizing handlers
     const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -477,15 +536,29 @@ export default function App() {
     <div className="h-screen bg-slate-900 text-white p-4 sm:p-6 lg:p-8 flex flex-col overflow-hidden">
       <header className="flex flex-wrap justify-between items-center mb-6 gap-4 flex-shrink-0">
         <h1 className="text-3xl font-bold text-cyan-400">Consultorio Virtual</h1>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setPatientRegistryOpen(true)} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0115 11h1c.414 0 .79.122 1.11.325a6.002 6.002 0 015.74 4.901A1 1 0 0121.82 18H15.07a3.001 3.001 0 01-2.14 2H10a1 1 0 01-1-1v-1a1 1 0 011-1h2.071a3.001 3.001 0 01-.141-1z" /></svg>
-            <span>Pacientes</span>
-          </button>
-           <button onClick={() => setAiModalOpen(true)} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>
-            <span>Asistente IA</span>
-          </button>
+        <div className="flex items-center flex-wrap gap-3">
+            <div className="flex items-center gap-3 border-r border-slate-700 pr-3">
+                <button onClick={handleExportData} title="Exportar Pacientes y Turnos a JSON" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                    <span>Exportar</span>
+                </button>
+                 <button onClick={() => handleImportData('patients')} title="Importar Pacientes desde JSON" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                    <span>Imp. Pacientes</span>
+                </button>
+                 <button onClick={() => handleImportData('appointments')} title="Importar Turnos desde JSON" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                    <span>Imp. Turnos</span>
+                </button>
+            </div>
+            <button onClick={() => setPatientRegistryOpen(true)} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0115 11h1c.414 0 .79.122 1.11.325a6.002 6.002 0 015.74 4.901A1 1 0 0121.82 18H15.07a3.001 3.001 0 01-2.14 2H10a1 1 0 01-1-1v-1a1 1 0 011-1h2.071a3.001 3.001 0 01-.141-1z" /></svg>
+                <span>Pacientes</span>
+            </button>
+            <button onClick={() => setAiModalOpen(true)} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>
+                <span>Asistente IA</span>
+            </button>
         </div>
       </header>
 
