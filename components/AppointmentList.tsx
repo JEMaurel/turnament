@@ -98,19 +98,18 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
     const allTimes = new Set([...baseSlots, ...appointments.map(app => app.time)]);
     const sortedTimes = Array.from(allTimes).sort((a, b) => a.localeCompare(b));
 
-    // FIX: Replaced a `reduce` implementation with `flatMap` to correct a type inference issue.
-    // The previous implementation could lead to `unknown` types downstream. `flatMap` is more suitable
-    // for this transformation and provides more stable type inference.
-    return sortedTimes.flatMap((time): ScheduledItem[] => {
+    // FIX: Replaced flatMap with reduce to ensure stable type inference.
+    // The flatMap implementation was causing issues where item.data was inferred as `unknown`.
+    // A reduce with an explicit accumulator type is more robust.
+    return sortedTimes.reduce<ScheduledItem[]>((accumulator, time) => {
       const appointment = appointmentsByTime.get(time);
       if (appointment) {
-        return [{ type: 'filled', data: appointment }];
+        accumulator.push({ type: 'filled', data: appointment });
+      } else if (baseSlots.includes(time)) {
+        accumulator.push({ type: 'empty', time });
       }
-      if (baseSlots.includes(time)) {
-        return [{ type: 'empty', time }];
-      }
-      return [];
-    });
+      return accumulator;
+    }, []);
 
   }, [selectedDate, appointments]);
 
