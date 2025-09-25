@@ -190,13 +190,12 @@ const AppointmentModal: React.FC<{
 
 const PatientRegistryModal: React.FC<{isOpen: boolean; onClose: () => void; patients: Patient[]}> = ({ isOpen, onClose, patients }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
     const filteredPatients = useMemo(() => {
         if (!searchTerm) {
             return patients;
         }
-        // FIX: Added checks for `patient` and `patient.name` to prevent crashes
-        // when filtering patients with incomplete data from localStorage.
         return patients.filter(patient =>
             patient && patient.name && patient.name.toLowerCase().includes(searchTerm.toLowerCase())
         );
@@ -205,39 +204,73 @@ const PatientRegistryModal: React.FC<{isOpen: boolean; onClose: () => void; pati
     useEffect(() => {
         if (!isOpen) {
             setSearchTerm('');
+            setSelectedPatient(null);
         }
     }, [isOpen]);
 
+    const PatientDetail: React.FC<{label: string; value?: string}> = ({ label, value }) => (
+        <div>
+            <p className="text-sm font-medium text-slate-400">{label}</p>
+            <p className="text-lg text-white whitespace-pre-wrap">{value || <span className="text-slate-500">No especificado</span>}</p>
+        </div>
+    );
+
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Registro de Pacientes">
-            <div className="mb-4 relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                    </svg>
-                </span>
-                <input
-                    type="text"
-                    placeholder="Buscar paciente..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 pl-10 pr-4 focus:ring-cyan-500 focus:border-cyan-500"
-                    aria-label="Buscar Paciente"
-                />
-            </div>
-            <div className="max-h-[50vh] overflow-y-auto pr-2">
-                {filteredPatients.length > 0 ? (
-                    <ul className="space-y-2">
-                        {filteredPatients.map(patient => (
-                            <li key={patient.id} className="p-3 bg-slate-700 rounded-md">
-                                {patient.name}
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
-                    <p className="text-slate-400 text-center py-4">No se encontraron pacientes.</p>
-                )}
-            </div>
+        <Modal isOpen={isOpen} onClose={onClose} title={selectedPatient ? "Detalles del Paciente" : "Registro de Pacientes"}>
+            {selectedPatient ? (
+                <div className="max-h-[60vh] overflow-y-auto pr-2">
+                    <button onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 mb-4 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                        <span>Volver a la lista</span>
+                    </button>
+                    <div className="space-y-4">
+                        <h3 className="text-3xl font-bold text-white border-b border-slate-700 pb-2">{selectedPatient.name}</h3>
+                        <PatientDetail label="Obra Social" value={selectedPatient.insurance} />
+                        <PatientDetail label="Médico Derivante" value={selectedPatient.doctor} />
+                        <PatientDetail label="Tratamiento" value={selectedPatient.treatment} />
+                        <PatientDetail label="Diagnóstico (Dx)" value={selectedPatient.diagnosis} />
+                        <PatientDetail label="Observaciones (Obs)" value={selectedPatient.observations} />
+                    </div>
+                </div>
+            ) : (
+                <>
+                    <div className="mb-4 relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                            </svg>
+                        </span>
+                        <input
+                            type="text"
+                            placeholder="Buscar paciente..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 pl-10 pr-4 focus:ring-cyan-500 focus:border-cyan-500"
+                            aria-label="Buscar Paciente"
+                        />
+                    </div>
+                    <div className="max-h-[50vh] overflow-y-auto pr-2">
+                        {filteredPatients.length > 0 ? (
+                            <ul className="space-y-2">
+                                {filteredPatients.map(patient => (
+                                    <li 
+                                        key={patient.id} 
+                                        className="p-3 bg-slate-700 rounded-md cursor-pointer hover:bg-slate-600 transition-colors"
+                                        onClick={() => setSelectedPatient(patient)}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyPress={(e) => e.key === 'Enter' && setSelectedPatient(patient)}
+                                    >
+                                        {patient.name}
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-slate-400 text-center py-4">No se encontraron pacientes.</p>
+                        )}
+                    </div>
+                </>
+            )}
         </Modal>
     );
 };

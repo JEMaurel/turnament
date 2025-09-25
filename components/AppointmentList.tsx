@@ -91,7 +91,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
     const scheduleStartHour = 11;
     const scheduleEndHour = 18;
 
-    const baseSlots = [];
+    const baseSlots: string[] = [];
     for (let h = scheduleStartHour; h <= scheduleEndHour; h++) {
       baseSlots.push(`${String(h).padStart(2, '0')}:00`);
       if (h < scheduleEndHour) {
@@ -103,15 +103,22 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
     const allTimes = new Set([...baseSlots, ...appointments.map(app => app.time)]);
     const sortedTimes = Array.from(allTimes).sort((a, b) => a.localeCompare(b));
 
-    const items: ScheduledItem[] = [];
-    for (const time of sortedTimes) {
-      const appointment = appointmentsByTime.get(time);
-      if (appointment) {
-        items.push({ type: 'filled', data: appointment });
-      } else if (baseSlots.includes(time)) {
-        items.push({ type: 'empty', time });
-      }
-    }
+    // FIX: Switched to a map/filter implementation to ensure robust type inference.
+    // The previous loop-based approach, while logically correct, could lead to subtle
+    // type inference failures in some TypeScript configurations, causing the 'unknown' type error.
+    const items = sortedTimes
+      .map((time): ScheduledItem | null => {
+        const appointment = appointmentsByTime.get(time);
+        if (appointment) {
+          return { type: 'filled', data: appointment };
+        }
+        if (baseSlots.includes(time)) {
+          return { type: 'empty', time };
+        }
+        return null;
+      })
+      .filter((item): item is ScheduledItem => item !== null);
+
     return items;
   }, [selectedDate, appointments]);
 
