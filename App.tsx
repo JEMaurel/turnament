@@ -2,8 +2,22 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
 import type { Patient, Appointment } from './types';
-import { initialPatients, initialAppointments } from './data/mockData';
 import { getAiAssistance } from './services/geminiService';
+
+// Initial seed data for first-time use if localStorage is empty
+const seedPatients: Patient[] = [
+  { id: 'p1', name: 'Juan Perez', insurance: 'OSDE', doctor: 'Dr. Garcia', treatment: 'Terapia Cognitiva', diagnosis: 'Ansiedad', observations: 'Progreso favorable.' },
+  { id: 'p2', name: 'Maria Lopez', insurance: 'Swiss Medical', doctor: 'Dr. Martinez', treatment: 'Psicoanálisis', diagnosis: 'Depresión', observations: 'Requiere seguimiento cercano.' },
+  { id: 'p3', name: 'Carlos Sanchez', insurance: 'Galeno', doctor: 'Dr. Garcia', treatment: 'Terapia de Pareja', diagnosis: 'Conflictos de comunicación', observations: '' },
+];
+
+const seedAppointments: Appointment[] = [
+  { id: 'a1', patientId: 'p1', date: new Date().toISOString().split('T')[0], time: '09:00', session: '5/10' },
+  { id: 'a2', patientId: 'p2', date: new Date().toISOString().split('T')[0], time: '10:00', session: '8/12' },
+  { id: 'a3', patientId: 'p1', date: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString().split('T')[0], time: '09:00', session: '6/10' },
+  { id: 'a4', patientId: 'p3', date: new Date(new Date().setDate(new Date().getDate() + 3)).toISOString().split('T')[0], time: '11:00', session: '2/8' },
+];
+
 
 // Modal Components defined within App.tsx to easily access state and handlers
 
@@ -277,8 +291,45 @@ export default function App() {
   // State
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-  const [patients, setPatients] = useState<Patient[]>(initialPatients);
-  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
+  
+  // Data is now stored in localStorage to protect patient privacy
+  const [patients, setPatients] = useState<Patient[]>(() => {
+    try {
+      const saved = window.localStorage.getItem('consultorio-patients');
+      return saved ? JSON.parse(saved) : seedPatients;
+    } catch (error) {
+      console.error("Error loading patients from localStorage:", error);
+      return seedPatients;
+    }
+  });
+
+  const [appointments, setAppointments] = useState<Appointment[]>(() => {
+    try {
+      const saved = window.localStorage.getItem('consultorio-appointments');
+      return saved ? JSON.parse(saved) : seedAppointments;
+    } catch (error) {
+      console.error("Error loading appointments from localStorage:", error);
+      return seedAppointments;
+    }
+  });
+
+  // Effect to save data to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('consultorio-patients', JSON.stringify(patients));
+    } catch (error) {
+      console.error("Error saving patients to localStorage:", error);
+    }
+  }, [patients]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('consultorio-appointments', JSON.stringify(appointments));
+    } catch (error) {
+      console.error("Error saving appointments to localStorage:", error);
+    }
+  }, [appointments]);
+
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
   // Resizing State

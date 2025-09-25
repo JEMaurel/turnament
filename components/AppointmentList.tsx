@@ -76,9 +76,10 @@ type ScheduledItem = { type: 'filled'; data: Appointment & { patientName: string
 
 const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient }) => {
 
-  // FIX: Replaced the implementation for generating scheduledItems to resolve a
-  // type inference issue where item.data was incorrectly inferred as 'unknown'.
-  // This new logic ensures that items are correctly typed before rendering.
+  // FIX: Refactored the `useMemo` hook for `scheduledItems` to use `Array.prototype.reduce`.
+  // This provides more robust type inference than the previous `map` and `filter`
+  // chain, resolving an issue where `item.data` was incorrectly typed as `unknown`
+  // within the component's render method.
   const scheduledItems: ScheduledItem[] = useMemo(() => {
     if (!selectedDate) return [];
 
@@ -97,18 +98,15 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
     const allTimes = new Set([...baseSlots, ...appointments.map(app => app.time)]);
     const sortedTimes = Array.from(allTimes).sort((a, b) => a.localeCompare(b));
 
-    return sortedTimes
-      .map((time): ScheduledItem | null => {
+    return sortedTimes.reduce<ScheduledItem[]>((acc, time) => {
         const appointment = appointmentsByTime.get(time);
         if (appointment) {
-          return { type: 'filled', data: appointment };
+          acc.push({ type: 'filled', data: appointment });
+        } else if (baseSlots.includes(time)) {
+          acc.push({ type: 'empty', time });
         }
-        if (baseSlots.includes(time)) {
-          return { type: 'empty', time };
-        }
-        return null;
-      })
-      .filter((item): item is ScheduledItem => item !== null);
+        return acc;
+      }, []);
   }, [selectedDate, appointments]);
 
   return (
