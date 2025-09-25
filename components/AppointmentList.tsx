@@ -4,7 +4,6 @@ import type { Appointment, Patient } from '../types';
 interface AppointmentListProps {
   selectedDate: Date | null;
   appointments: (Appointment & { patientName: string })[];
-  // FIX: Updated the type to be more specific to the data passed within this component.
   onSelectAppointment: (appointment: Appointment & { patientName: string }) => void;
   onDeleteAppointment: (appointmentId: string) => void;
   onAddNewAppointment: (time?: string) => void;
@@ -13,7 +12,6 @@ interface AppointmentListProps {
 
 const AppointmentRow: React.FC<{ 
   appointment: Appointment & { patientName: string }; 
-  // FIX: Updated the type to be more specific to the data passed within this component.
   onSelectAppointment: (appointment: Appointment & { patientName: string }) => void; 
   onDeleteAppointment: (appointmentId: string) => void;
   onHighlightPatient: (patientId: string) => void;
@@ -74,11 +72,13 @@ const EmptySlotRow: React.FC<{time: string; onAddNewAppointment: (time: string) 
     </div>
 );
 
-// FIX: Define ScheduledItem type outside the component to be reusable and help with type inference.
 type ScheduledItem = { type: 'filled'; data: Appointment & { patientName: string } } | { type: 'empty'; time: string };
 
 const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient }) => {
 
+  // FIX: Replaced an untyped `reduce` call with a `map` and `filter` chain.
+  // This resolves the error where `item.data` was being inferred as `unknown`
+  // by correctly typing the generated `scheduledItems` array.
   const scheduledItems: ScheduledItem[] = useMemo(() => {
     if (!selectedDate) return [];
 
@@ -97,9 +97,6 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
     const allTimes = new Set([...baseSlots, ...appointments.map(app => app.time)]);
     const sortedTimes = Array.from(allTimes).sort((a, b) => a.localeCompare(b));
 
-    // FIX: Replaced reduce with map/filter and a type guard. This approach is more
-    // explicit and robust for TypeScript's type inference, ensuring that the `item`
-    // in the subsequent `.map()` call is correctly typed as `ScheduledItem` and not `unknown`.
     return sortedTimes
       .map((time): ScheduledItem | null => {
         const appointment = appointmentsByTime.get(time);

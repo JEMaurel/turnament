@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
 import type { Patient, Appointment } from './types';
@@ -277,6 +277,11 @@ export default function App() {
   const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
+  // Resizing State
+  const [calendarWidth, setCalendarWidth] = useState(420);
+  const [isResizing, setIsResizing] = useState(false);
+  const mainContentRef = useRef<HTMLDivElement>(null);
+
   // Modal States
   const [isAppointmentModalOpen, setAppointmentModalOpen] = useState(false);
   // FIX: Updated state to hold the extended appointment type which includes patientName.
@@ -316,7 +321,7 @@ export default function App() {
   }, []);
   
   // FIX: The `onSelectAppointment` prop expects a function that takes an appointment with a `patientName`.
-  // The original `Appointment` type was causing a type mismatch.
+  // The original `Appointment` type was causing a type mismatch. This handler is updated to match.
   const handleSelectAppointment = useCallback((appointment: Appointment & { patientName: string }) => {
       setSelectedPatientId(appointment.patientId);
       setEditingAppointment(appointment);
@@ -376,9 +381,46 @@ export default function App() {
     }
   };
 
+  // Resizing handlers
+    const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setIsResizing(true);
+    };
+
+    const handleMouseUp = () => {
+        setIsResizing(false);
+    };
+
+    const handleMouseMove = useCallback((e: MouseEvent) => {
+        if (isResizing && mainContentRef.current) {
+            const container = mainContentRef.current;
+            const newWidth = e.clientX - container.getBoundingClientRect().left;
+            const minWidth = 320;
+            const maxWidth = container.clientWidth * 0.6; // No more than 60% of the container
+            
+            if (newWidth > minWidth && newWidth < maxWidth) {
+                setCalendarWidth(newWidth);
+            }
+        }
+    }, [isResizing]);
+
+    useEffect(() => {
+        if (isResizing) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+        } else {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        }
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isResizing, handleMouseMove]);
+
   return (
-    <div className="h-screen bg-slate-900 text-white p-4 sm:p-6 lg:p-8 flex flex-col">
-      <header className="flex flex-wrap justify-between items-center mb-6 gap-4">
+    <div className="h-screen bg-slate-900 text-white p-4 sm:p-6 lg:p-8 flex flex-col overflow-hidden">
+      <header className="flex flex-wrap justify-between items-center mb-6 gap-4 flex-shrink-0">
         <h1 className="text-3xl font-bold text-cyan-400">Consultorio Virtual</h1>
         <div className="flex items-center gap-3">
           <button onClick={() => setPatientRegistryOpen(true)} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
@@ -392,8 +434,8 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col md:flex-row gap-6 min-h-0">
-        <div className="w-full md:w-[380px] lg:w-[420px] flex-shrink-0">
+      <main ref={mainContentRef} className="flex-1 flex flex-row gap-0 min-h-0">
+        <div style={{ width: `${calendarWidth}px` }} className="flex-shrink-0 h-full">
           <Calendar
             currentDate={currentDate}
             selectedDate={selectedDate}
@@ -402,7 +444,15 @@ export default function App() {
             onMonthChange={setCurrentDate}
           />
         </div>
-        <div className="flex-1 min-h-0">
+        
+        <div
+          onMouseDown={handleMouseDown}
+          className="w-2 cursor-col-resize flex items-center justify-center group flex-shrink-0"
+        >
+            <div className="w-0.5 h-1/2 bg-slate-700 group-hover:bg-cyan-500 transition-colors rounded-full"></div>
+        </div>
+
+        <div className="flex-1 min-h-0 min-w-0">
           <AppointmentList
             selectedDate={selectedDate}
             appointments={appointmentsForSelectedDay}
