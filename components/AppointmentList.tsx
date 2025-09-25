@@ -74,10 +74,13 @@ const EmptySlotRow: React.FC<{time: string; onAddNewAppointment: (time: string) 
     </div>
 );
 
+// FIX: Define ScheduledItem type outside the component to be reusable and help with type inference.
+type ScheduledItem = { type: 'filled'; data: Appointment & { patientName: string } } | { type: 'empty'; time: string };
 
 const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient }) => {
 
-  const scheduledItems = useMemo(() => {
+  // FIX: Explicitly type `scheduledItems` to ensure correct type inference within the `map` function below.
+  const scheduledItems: ScheduledItem[] = useMemo(() => {
     if (!selectedDate) return [];
 
     const scheduleStartHour = 11;
@@ -94,8 +97,6 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
     const appointmentsByTime = new Map(appointments.map(app => [app.time, app]));
     const allTimes = new Set([...baseSlots, ...appointments.map(app => app.time)]);
     const sortedTimes = Array.from(allTimes).sort((a, b) => a.localeCompare(b));
-
-    type ScheduledItem = { type: 'filled'; data: Appointment & { patientName: string } } | { type: 'empty'; time: string };
 
     // FIX: Replaced a `reduce` implementation with `flatMap` to correct a type inference issue.
     // The previous implementation could lead to `unknown` types downstream. `flatMap` is more suitable
