@@ -1,3 +1,5 @@
+// FIX: Switched from CommonJS (require/module.exports) to ES Modules (import/export default)
+// to resolve type errors and align with modern TypeScript standards.
 import { GoogleGenAI } from "@google/genai";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 

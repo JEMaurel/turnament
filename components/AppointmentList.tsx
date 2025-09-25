@@ -79,7 +79,6 @@ type ScheduledItem = { type: 'filled'; data: Appointment & { patientName: string
 
 const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient }) => {
 
-  // FIX: Explicitly type `scheduledItems` to ensure correct type inference within the `map` function below.
   const scheduledItems: ScheduledItem[] = useMemo(() => {
     if (!selectedDate) return [];
 
@@ -98,18 +97,21 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
     const allTimes = new Set([...baseSlots, ...appointments.map(app => app.time)]);
     const sortedTimes = Array.from(allTimes).sort((a, b) => a.localeCompare(b));
 
-    // FIX: Switched from a map/filter chain to reduce for creating the scheduled items.
-    // This approach is more robust against potential type inference issues with type guards
-    // across different TypeScript versions or build environments, addressing the reported error.
-    return sortedTimes.reduce<ScheduledItem[]>((acc, time) => {
-      const appointment = appointmentsByTime.get(time);
-      if (appointment) {
-        acc.push({ type: 'filled', data: appointment });
-      } else if (baseSlots.includes(time)) {
-        acc.push({ type: 'empty', time });
-      }
-      return acc;
-    }, []);
+    // FIX: Replaced reduce with map/filter and a type guard. This approach is more
+    // explicit and robust for TypeScript's type inference, ensuring that the `item`
+    // in the subsequent `.map()` call is correctly typed as `ScheduledItem` and not `unknown`.
+    return sortedTimes
+      .map((time): ScheduledItem | null => {
+        const appointment = appointmentsByTime.get(time);
+        if (appointment) {
+          return { type: 'filled', data: appointment };
+        }
+        if (baseSlots.includes(time)) {
+          return { type: 'empty', time };
+        }
+        return null;
+      })
+      .filter((item): item is ScheduledItem => item !== null);
   }, [selectedDate, appointments]);
 
   return (
@@ -118,12 +120,6 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
         <h2 className="text-xl font-bold">
           Turnos para: <span className="text-cyan-400">{selectedDate ? selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Ningún día seleccionado'}</span>
         </h2>
-        {selectedDate && (
-          <button onClick={() => onAddNewAppointment()} className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
-            <span>Nuevo Turno</span>
-          </button>
-        )}
       </div>
       <div className="flex-grow overflow-y-auto space-y-2 pr-2">
         {selectedDate && scheduledItems.length > 0 ? (
