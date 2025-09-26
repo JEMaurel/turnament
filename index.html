@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Consultorio Virtual</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
 <script type="importmap">
 {
   "imports": {
@@ -14,7 +25,7 @@
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.20.0",
     "@vercel/node": "https://aistudiocdn.com/@vercel/node@^5.3.24",
     "vite": "https://aistudiocdn.com/vite@^7.1.7",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.0.3"
+    "@vitejs/plugin-react": "https://aistudiocdn.com/vite@^5.0.3"
   }
 }
 </script>

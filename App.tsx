@@ -24,7 +24,7 @@ const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; chi
 const AppointmentModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onSave: (appointmentData: Appointment, patientData: Patient, recurringDays: number[]) => void;
+  onSave: (appointmentData: Appointment, patientData: Patient, recurringDays: number[], recurringWeeks: number) => void;
   // FIX: Updated existingAppointment to handle the extended type with patientName.
   existingAppointment: (Appointment & { patientName: string }) | null;
   existingPatient: Patient | null;
@@ -42,6 +42,7 @@ const AppointmentModal: React.FC<{
     const [diagnosis, setDiagnosis] = useState('');
     const [observations, setObservations] = useState('');
     const [recurringDays, setRecurringDays] = useState<number[]>([]);
+    const [recurringWeeks, setRecurringWeeks] = useState(4);
     
     useEffect(() => {
         if (isOpen) {
@@ -56,6 +57,7 @@ const AppointmentModal: React.FC<{
                 setDiagnosis(existingPatient.diagnosis || '');
                 setObservations(existingPatient.observations || '');
                 setRecurringDays([]);
+                setRecurringWeeks(4);
             } else {
                 setTime(defaultTime);
                 setPatientName('');
@@ -67,6 +69,7 @@ const AppointmentModal: React.FC<{
                 setDiagnosis('');
                 setObservations('');
                 setRecurringDays([]);
+                setRecurringWeeks(4);
             }
         }
     }, [existingAppointment, existingPatient, isOpen, defaultTime]);
@@ -99,7 +102,7 @@ const AppointmentModal: React.FC<{
             name: patientName,
             insurance, doctor, treatment, diagnosis, observations,
         };
-        onSave(appointmentData, patientData, recurringDays);
+        onSave(appointmentData, patientData, recurringDays, recurringWeeks);
         onClose();
     };
 
@@ -127,19 +130,36 @@ const AppointmentModal: React.FC<{
                 </div>
 
                 {!existingAppointment && (
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300">Repetir semanalmente los días:</label>
-                        <div className="flex gap-2 mt-2">
-                            {weekDays.map((day, index) => {
-                                // Mapea el índice del botón (Lun=0) al día de JS (Dom=0, Lun=1)
-                                const jsDay = index === 6 ? 0 : index + 1;
-                                return (
-                                    <button key={index} onClick={() => toggleRecurringDay(jsDay)}
-                                        className={`w-8 h-8 rounded-full font-bold transition-colors ${recurringDays.includes(jsDay) ? 'bg-cyan-500 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}>
-                                        {day}
-                                    </button>
-                                );
-                            })}
+                    <div className="space-y-4">
+                        <label className="block text-sm font-medium text-slate-300">Repetir semanalmente</label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-900/50 p-3 rounded-md">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-400 mb-2">Los días:</label>
+                                <div className="flex gap-2">
+                                    {weekDays.map((day, index) => {
+                                        const jsDay = index === 6 ? 0 : index + 1;
+                                        return (
+                                            <button key={index} onClick={() => toggleRecurringDay(jsDay)}
+                                                className={`w-8 h-8 rounded-full font-bold transition-colors ${recurringDays.includes(jsDay) ? 'bg-cyan-500 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}>
+                                                {day}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-400 mb-2">Durante:</label>
+                                <div className="flex items-center gap-2">
+                                    <input 
+                                        type="number" 
+                                        min="1" 
+                                        value={recurringWeeks} 
+                                        onChange={e => setRecurringWeeks(Math.max(1, Number(e.target.value)))} 
+                                        className="w-20 bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"
+                                    />
+                                    <span className="text-slate-300">semanas</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -385,13 +405,25 @@ export default function App() {
     if (!selectedPatientId) return [];
     const month = currentDate.getMonth();
     const year = currentDate.getFullYear();
+    const nextMonth = (month + 1) % 12;
+    const nextYear = month === 11 ? year + 1 : year;
+    
     return appointments
       .filter(app => {
-        const appDate = new Date(`${app.date}T00:00:00`); // Ensure correct date parsing across timezones
-        return app.patientId === selectedPatientId && appDate.getUTCMonth() === month && appDate.getUTCFullYear() === year;
+        const appDate = new Date(`${app.date}T12:00:00`); // Use midday to avoid timezone issues
+        return app.patientId === selectedPatientId && 
+               ((appDate.getMonth() === month && appDate.getFullYear() === year) || 
+                (appDate.getMonth() === nextMonth && appDate.getFullYear() === nextYear));
       })
       .map(app => app.date);
   }, [selectedPatientId, appointments, currentDate]);
+
+  const nextMonthDate = useMemo(() => {
+    const d = new Date(currentDate);
+    d.setMonth(d.getMonth() + 1, 1);
+    return d;
+  }, [currentDate]);
+
 
   // Handlers
   const handleDateClick = useCallback((date: Date) => {
@@ -418,7 +450,7 @@ export default function App() {
     setAppointmentModalOpen(true);
   }, [selectedDate]);
 
-  const handleSaveAppointment = (appointmentData: Appointment, patientData: Patient, recurringDays: number[]) => {
+  const handleSaveAppointment = (appointmentData: Appointment, patientData: Patient, recurringDays: number[], recurringWeeks: number) => {
       // Update or create patient
       const patientExists = patients.some(p => p.id === patientData.id);
       if (patientExists) {
@@ -432,15 +464,18 @@ export default function App() {
       if (appointmentExists) {
           setAppointments(prev => prev.map(a => a.id === appointmentData.id ? appointmentData : a));
       } else {
-          let newAppointments = [appointmentData];
-          if (recurringDays.length > 0 && selectedDate) {
-              const endDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0); // End of current month
+          let newAppointments: Appointment[] = [appointmentData];
+          if (recurringDays.length > 0 && selectedDate && recurringWeeks > 0) {
+              const appointmentsToCreate: Appointment[] = [];
+              const endDate = new Date(selectedDate);
+              endDate.setDate(selectedDate.getDate() + (recurringWeeks * 7));
+              
               let currentDatePointer = new Date(selectedDate);
               currentDatePointer.setDate(currentDatePointer.getDate() + 1);
 
               while(currentDatePointer <= endDate) {
                   if (recurringDays.includes(currentDatePointer.getDay())) {
-                      newAppointments.push({
+                      appointmentsToCreate.push({
                           ...appointmentData,
                           id: `app-${Date.now()}-${currentDatePointer.toISOString()}`,
                           date: currentDatePointer.toISOString().split('T')[0]
@@ -448,17 +483,38 @@ export default function App() {
                   }
                   currentDatePointer.setDate(currentDatePointer.getDate() + 1);
               }
+              newAppointments.push(...appointmentsToCreate);
           }
-          setAppointments(prev => [...prev, ...newAppointments]);
+          
+          const existingAppointmentsByDateTime = new Map(appointments.map(app => [`${app.date}|${app.time}`, app]));
+          const conflicts = newAppointments.filter(newApp => existingAppointmentsByDateTime.has(`${newApp.date}|${newApp.time}`));
+
+          if (conflicts.length > 0) {
+              const conflictDetails = conflicts.map(c => {
+                  const existing = existingAppointmentsByDateTime.get(`${c.date}|${c.time}`)!;
+                  const patientName = patients.find(p => p.id === existing.patientId)?.name || 'Desconocido';
+                  return `- ${new Date(c.date + 'T12:00:00').toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit'})} a las ${c.time} con ${patientName}`;
+              }).join('\n');
+
+              if (!window.confirm(`Atención: Los siguientes turnos se sobrescribirán:\n${conflictDetails}\n\n¿Desea continuar?`)) {
+                  return; // Abort if user cancels
+              }
+
+              const conflictKeys = new Set(conflicts.map(c => `${c.date}|${c.time}`));
+              const nonConflictingAppointments = appointments.filter(app => !conflictKeys.has(`${app.date}|${app.time}`));
+              setAppointments([...nonConflictingAppointments, ...newAppointments]);
+          } else {
+              setAppointments(prev => [...prev, ...newAppointments]);
+          }
       }
   };
 
 
-  const handleDeleteAppointment = (appointmentId: string) => {
-    if(window.confirm("¿Estás seguro de que quieres eliminar este turno?")) {
-        setAppointments(prev => prev.filter(a => a.id !== appointmentId));
+  const handleDeleteAppointment = useCallback((appointmentId: string) => {
+    if (window.confirm("¿Estás seguro de que quieres eliminar este turno?")) {
+      setAppointments(prev => prev.filter(a => a.id !== appointmentId));
     }
-  };
+  }, []);
 
     const handleExportData = () => {
         const exportData = (data: any[], fileName: string) => {
@@ -546,6 +602,15 @@ export default function App() {
         };
     }, [isResizing, handleMouseMove]);
 
+  // FIX: Assigned `editingAppointment` to a local constant within the `useMemo` hook.
+  // This helps TypeScript's type-narrowing analysis inside the callback, resolving an
+  // error where `editingAppointment` was being incorrectly inferred as `unknown`.
+  const existingPatientForModal = useMemo((): Patient | null => {
+    const appointment = editingAppointment;
+    if (!appointment) return null;
+    return patients.find(p => p.id === appointment.patientId) || null;
+  }, [editingAppointment, patients]);
+
   return (
     <div className="h-screen bg-slate-900 text-white p-4 sm:p-6 lg:p-8 flex flex-col overflow-hidden">
       <header className="flex flex-wrap justify-between items-center mb-6 gap-4 flex-shrink-0">
@@ -577,14 +642,27 @@ export default function App() {
       </header>
 
       <main ref={mainContentRef} className="flex-1 flex flex-row gap-0 min-h-0">
-        <div style={{ width: `${calendarWidth}px` }} className="flex-shrink-0 h-full">
-          <Calendar
-            currentDate={currentDate}
-            selectedDate={selectedDate}
-            onDateClick={handleDateClick}
-            highlightedDays={highlightedPatientDays}
-            onMonthChange={setCurrentDate}
-          />
+        <div style={{ width: `${calendarWidth}px` }} className="flex-shrink-0 h-full flex flex-col">
+          <div className="flex-shrink-0">
+            <Calendar
+              currentDate={currentDate}
+              selectedDate={selectedDate}
+              onDateClick={handleDateClick}
+              highlightedDays={highlightedPatientDays}
+              onMonthChange={setCurrentDate}
+            />
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-700 flex-shrink-0">
+             <Calendar
+                currentDate={nextMonthDate}
+                selectedDate={selectedDate}
+                onDateClick={handleDateClick}
+                highlightedDays={highlightedPatientDays}
+                onMonthChange={() => {}} 
+                weeksToShow={3}
+                showNavigation={false}
+              />
+          </div>
         </div>
         
         <div
@@ -612,7 +690,7 @@ export default function App() {
         onClose={() => setAppointmentModalOpen(false)}
         onSave={handleSaveAppointment}
         existingAppointment={editingAppointment}
-        existingPatient={editingAppointment ? patients.find(p => p.id === editingAppointment.patientId) || null : null}
+        existingPatient={existingPatientForModal}
         patients={patients}
         selectedDate={selectedDate || new Date()}
         defaultTime={defaultAppointmentTime}

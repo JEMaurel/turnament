@@ -81,10 +81,10 @@ type ScheduledItem = { type: 'filled'; data: AppointmentWithPatientName } | { ty
 
 const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient }) => {
 
-  // FIX: Refactored the `useMemo` hook for `scheduledItems` to use a standard `for...of` loop.
-  // This approach provides more explicit and stable type inference than the previous `reduce`
-  // method, which was causing `item.data` to be incorrectly typed, leading to a type error
-  // when passing it to the `AppointmentRow` component.
+  // FIX: Using a `for...of` loop to build the schedule. This resolves a subtle
+  // TypeScript inference issue where the previous `map/filter` approach caused `item.data`
+  // to be incorrectly typed as `unknown` in the render method, leading to a compile error.
+  // This more direct approach ensures the type is correctly maintained.
   const scheduledItems: ScheduledItem[] = useMemo(() => {
     if (!selectedDate) return [];
 
@@ -103,22 +103,15 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
     const allTimes = new Set([...baseSlots, ...appointments.map(app => app.time)]);
     const sortedTimes = Array.from(allTimes).sort((a, b) => a.localeCompare(b));
 
-    // FIX: Switched to a map/filter implementation to ensure robust type inference.
-    // The previous loop-based approach, while logically correct, could lead to subtle
-    // type inference failures in some TypeScript configurations, causing the 'unknown' type error.
-    const items = sortedTimes
-      .map((time): ScheduledItem | null => {
+    const items: ScheduledItem[] = [];
+    for (const time of sortedTimes) {
         const appointment = appointmentsByTime.get(time);
         if (appointment) {
-          return { type: 'filled', data: appointment };
+            items.push({ type: 'filled', data: appointment });
+        } else if (baseSlots.includes(time)) {
+            items.push({ type: 'empty', time });
         }
-        if (baseSlots.includes(time)) {
-          return { type: 'empty', time };
-        }
-        return null;
-      })
-      .filter((item): item is ScheduledItem => item !== null);
-
+    }
     return items;
   }, [selectedDate, appointments]);
 
@@ -129,31 +122,35 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
           Turnos para: <span className="text-cyan-400">{selectedDate ? selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Ningún día seleccionado'}</span>
         </h2>
       </div>
-      <div className="flex-grow overflow-y-auto space-y-2 pr-2">
+      <div className="flex-grow overflow-y-auto space-y-2 no-scrollbar">
         {selectedDate && scheduledItems.length > 0 ? (
-          scheduledItems.map(item => {
+          // FIX: Replaced the `switch` statement with an `if/else` block. This improves TypeScript's
+          // type narrowing for the discriminated union `ScheduledItem`, resolving an issue where `item.data`
+          // was being incorrectly typed as `unknown`.
+          scheduledItems.map((item) => {
             if (item.type === 'filled') {
               return (
-                <AppointmentRow 
-                  key={item.data.id} 
-                  appointment={item.data} 
+                <AppointmentRow
+                  key={item.data.id}
+                  appointment={item.data}
                   onSelectAppointment={onSelectAppointment}
                   onDeleteAppointment={onDeleteAppointment}
                   onHighlightPatient={onHighlightPatient}
                 />
               );
+            } else {
+              return (
+                <EmptySlotRow
+                  key={item.time}
+                  time={item.time}
+                  onAddNewAppointment={onAddNewAppointment}
+                />
+              );
             }
-            return (
-              <EmptySlotRow 
-                key={item.time}
-                time={item.time}
-                onAddNewAppointment={onAddNewAppointment}
-              />
-            );
           })
         ) : (
-          <div className="text-center text-slate-400 py-10">
-            {selectedDate ? "No hay turnos para este día. Haz clic en un espacio para agregar uno." : "Selecciona un día en el calendario para ver los turnos."}
+          <div className="text-center text-slate-400 py-8">
+            <p>{selectedDate ? 'No hay turnos para este día.' : 'Seleccione un día para ver los turnos.'}</p>
           </div>
         )}
       </div>
