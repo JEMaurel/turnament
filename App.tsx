@@ -606,10 +606,10 @@ export default function App() {
     if (!editingAppointment) {
       return null;
     }
-    // FIX: Destructuring patientId from editingAppointment after the null check helps TypeScript
-    // correctly infer its type, resolving an issue where it was being treated as `unknown`.
-    const { patientId } = editingAppointment;
-    return patients.find(p => p.id === patientId) || null;
+    // FIX: Corrected a type inference issue by directly accessing `editingAppointment.patientId`.
+    // The previous destructuring approach failed to convince TypeScript that the object was
+    // correctly typed after the null check, leading to an 'unknown' type error.
+    return patients.find(p => p.id === editingAppointment.patientId) || null;
   }, [editingAppointment, patients]);
 
   return (

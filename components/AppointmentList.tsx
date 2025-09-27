@@ -124,30 +124,26 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
       </div>
       <div className="flex-grow overflow-y-auto space-y-2 no-scrollbar">
         {selectedDate && scheduledItems.length > 0 ? (
-          scheduledItems.map((item) => {
-            if (item.type === 'filled') {
-              // FIX: Destructuring `item` inside the type guard allows TypeScript to correctly infer
-              // the type of `data`, resolving an error where `item.data` was being treated as `unknown`.
-              const { data } = item;
-              return (
-                <AppointmentRow
-                  key={data.id}
-                  appointment={data}
-                  onSelectAppointment={onSelectAppointment}
-                  onDeleteAppointment={onDeleteAppointment}
-                  onHighlightPatient={onHighlightPatient}
-                />
-              );
-            } else {
-              return (
-                <EmptySlotRow
-                  key={item.time}
-                  time={item.time}
-                  onAddNewAppointment={onAddNewAppointment}
-                />
-              );
-            }
-          })
+          // FIX: Refactored the map to use a ternary operator. This is a common pattern to
+          // resolve TypeScript type inference issues with discriminated unions inside JSX,
+          // ensuring `item.data` is correctly typed after checking `item.type`.
+          scheduledItems.map((item) =>
+            item.type === 'filled' ? (
+              <AppointmentRow
+                key={item.data.id}
+                appointment={item.data}
+                onSelectAppointment={onSelectAppointment}
+                onDeleteAppointment={onDeleteAppointment}
+                onHighlightPatient={onHighlightPatient}
+              />
+            ) : (
+              <EmptySlotRow
+                key={item.time}
+                time={item.time}
+                onAddNewAppointment={onAddNewAppointment}
+              />
+            )
+          )
         ) : (
           <div className="text-center text-slate-400 py-8">
             <p>{selectedDate ? 'No hay turnos para este día.' : 'Seleccione un día para ver los turnos.'}</p>
