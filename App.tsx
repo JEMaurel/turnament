@@ -608,7 +608,10 @@ export default function App() {
   const existingPatientForModal = useMemo((): Patient | null => {
     const appointment = editingAppointment;
     if (!appointment) return null;
-    return patients.find(p => p.id === appointment.patientId) || null;
+    // FIX: Destructuring `patientId` before using it in the `find` callback helps
+    // TypeScript preserve the type information and resolves the "property does not exist on type unknown" error.
+    const { patientId } = appointment;
+    return patients.find(p => p.id === patientId) || null;
   }, [editingAppointment, patients]);
 
   return (
