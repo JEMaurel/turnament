@@ -1,3 +1,4 @@
+import { GoogleGenAI } from '@google/genai';
 import type { Patient, Appointment } from '../types';
 
 export const getAiAssistance = async (
@@ -6,22 +7,39 @@ export const getAiAssistance = async (
   question: string
 ): Promise<string> => {
   try {
-    const response = await fetch('/api/gemini', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ patients, appointments, question }),
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      console.error("Gemini API Key is not configured.");
+      return "Error: La clave de API para el asistente de IA no está configurada.";
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
+
+    const formattedData = appointments.map(app => {
+        const patient = patients.find(p => p.id === app.patientId);
+        return {
+          fecha: app.date,
+          hora: app.time,
+          paciente: patient ? patient.name : 'Desconocido',
+          sesion: app.session,
+          tratamiento: patient?.treatment,
+          diagnostico: patient?.diagnosis,
+        };
     });
 
-    const data = await response.json();
+    const systemInstruction = `Eres un asistente de un consultorio médico. Tienes acceso a la lista de pacientes y sus turnos. La fecha de hoy es ${new Date().toLocaleDateString('es-ES')}. Por favor, responde la siguiente pregunta del profesional de la salud de manera concisa y clara en español.`;
+    const contents = `Aquí están los datos actuales en formato JSON:\n${JSON.stringify(formattedData, null, 2)}\n\nPregunta: ${question}`;
 
-    if (!response.ok) {
-      console.error("Error from AI assistant API:", data.error);
-      return `Error: ${data.error || 'Hubo un error al procesar tu solicitud.'}`;
-    }
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: contents,
+        config: {
+            systemInstruction: systemInstruction,
+        }
+    });
     
-    return data.response;
+    const text = response.text;
+    return text;
 
   } catch (error) {
     console.error("Error al contactar al asistente de IA:", error);

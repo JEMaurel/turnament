@@ -124,17 +124,15 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
       </div>
       <div className="flex-grow overflow-y-auto space-y-2 no-scrollbar">
         {selectedDate && scheduledItems.length > 0 ? (
-          // FIX: Replaced the `switch` statement with an `if/else` block. This improves TypeScript's
-          // type narrowing for the discriminated union `ScheduledItem`, resolving an issue where `item.data`
-          // was being incorrectly typed as `unknown`.
           scheduledItems.map((item) => {
             if (item.type === 'filled') {
-              // FIX: By using direct property access `item.data` instead of destructuring,
-              // we help TypeScript correctly infer the type within the JSX, resolving the "Type 'unknown' is not assignable" error.
+              // FIX: Destructuring `item` inside the type guard allows TypeScript to correctly infer
+              // the type of `data`, resolving an error where `item.data` was being treated as `unknown`.
+              const { data } = item;
               return (
                 <AppointmentRow
-                  key={item.data.id}
-                  appointment={item.data}
+                  key={data.id}
+                  appointment={data}
                   onSelectAppointment={onSelectAppointment}
                   onDeleteAppointment={onDeleteAppointment}
                   onHighlightPatient={onHighlightPatient}

@@ -602,14 +602,14 @@ export default function App() {
         };
     }, [isResizing, handleMouseMove]);
 
-  // FIX: Simplified the logic to find the existing patient. By performing a null check
-  // on `editingAppointment` first, TypeScript can correctly infer its type, resolving
-  // the "property does not exist on type unknown" error without needing intermediate variables.
   const existingPatientForModal = useMemo((): Patient | null => {
     if (!editingAppointment) {
       return null;
     }
-    return patients.find(p => p.id === editingAppointment.patientId) || null;
+    // FIX: Destructuring patientId from editingAppointment after the null check helps TypeScript
+    // correctly infer its type, resolving an issue where it was being treated as `unknown`.
+    const { patientId } = editingAppointment;
+    return patients.find(p => p.id === patientId) || null;
   }, [editingAppointment, patients]);
 
   return (
