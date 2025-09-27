@@ -603,13 +603,14 @@ export default function App() {
     }, [isResizing, handleMouseMove]);
 
   const existingPatientForModal = useMemo((): Patient | null => {
-    if (!editingAppointment) {
+    // FIX: Directly using the state variable `editingAppointment` inside the nested
+    // `find` callback was causing a type inference issue. Assigning it to a local
+    // constant `appointment` first helps TypeScript correctly retain the narrowed type.
+    const appointment = editingAppointment;
+    if (!appointment) {
       return null;
     }
-    // FIX: Corrected a type inference issue by directly accessing `editingAppointment.patientId`.
-    // The previous destructuring approach failed to convince TypeScript that the object was
-    // correctly typed after the null check, leading to an 'unknown' type error.
-    return patients.find(p => p.id === editingAppointment.patientId) || null;
+    return patients.find(p => p.id === appointment.patientId) || null;
   }, [editingAppointment, patients]);
 
   return (

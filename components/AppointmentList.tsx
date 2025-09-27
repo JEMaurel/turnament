@@ -124,26 +124,29 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
       </div>
       <div className="flex-grow overflow-y-auto space-y-2 no-scrollbar">
         {selectedDate && scheduledItems.length > 0 ? (
-          // FIX: Refactored the map to use a ternary operator. This is a common pattern to
-          // resolve TypeScript type inference issues with discriminated unions inside JSX,
-          // ensuring `item.data` is correctly typed after checking `item.type`.
-          scheduledItems.map((item) =>
-            item.type === 'filled' ? (
-              <AppointmentRow
-                key={item.data.id}
-                appointment={item.data}
-                onSelectAppointment={onSelectAppointment}
-                onDeleteAppointment={onDeleteAppointment}
-                onHighlightPatient={onHighlightPatient}
-              />
-            ) : (
+          // FIX: The ternary operator was failing to properly narrow the discriminated union
+          // type for `item`. Using a full function body with an `if` statement for type
+          // guarding is a more robust pattern that ensures `item.data` is correctly typed.
+          scheduledItems.map((item) => {
+            if (item.type === 'filled') {
+              return (
+                <AppointmentRow
+                  key={item.data.id}
+                  appointment={item.data}
+                  onSelectAppointment={onSelectAppointment}
+                  onDeleteAppointment={onDeleteAppointment}
+                  onHighlightPatient={onHighlightPatient}
+                />
+              );
+            }
+            return (
               <EmptySlotRow
                 key={item.time}
                 time={item.time}
                 onAddNewAppointment={onAddNewAppointment}
               />
-            )
-          )
+            );
+          })
         ) : (
           <div className="text-center text-slate-400 py-8">
             <p>{selectedDate ? 'No hay turnos para este día.' : 'Seleccione un día para ver los turnos.'}</p>
