@@ -129,13 +129,12 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
           // was being incorrectly typed as `unknown`.
           scheduledItems.map((item) => {
             if (item.type === 'filled') {
-              // FIX: Destructuring `data` from `item` helps TypeScript correctly infer the type
-              // within the JSX, resolving the "Type 'unknown' is not assignable" error.
-              const { data } = item;
+              // FIX: By using direct property access `item.data` instead of destructuring,
+              // we help TypeScript correctly infer the type within the JSX, resolving the "Type 'unknown' is not assignable" error.
               return (
                 <AppointmentRow
-                  key={data.id}
-                  appointment={data}
+                  key={item.data.id}
+                  appointment={item.data}
                   onSelectAppointment={onSelectAppointment}
                   onDeleteAppointment={onDeleteAppointment}
                   onHighlightPatient={onHighlightPatient}

@@ -602,16 +602,14 @@ export default function App() {
         };
     }, [isResizing, handleMouseMove]);
 
-  // FIX: Assigned `editingAppointment` to a local constant within the `useMemo` hook.
-  // This helps TypeScript's type-narrowing analysis inside the callback, resolving an
-  // error where `editingAppointment` was being incorrectly inferred as `unknown`.
+  // FIX: Simplified the logic to find the existing patient. By performing a null check
+  // on `editingAppointment` first, TypeScript can correctly infer its type, resolving
+  // the "property does not exist on type unknown" error without needing intermediate variables.
   const existingPatientForModal = useMemo((): Patient | null => {
-    const appointment = editingAppointment;
-    if (!appointment) return null;
-    // FIX: Destructuring `patientId` before using it in the `find` callback helps
-    // TypeScript preserve the type information and resolves the "property does not exist on type unknown" error.
-    const { patientId } = appointment;
-    return patients.find(p => p.id === patientId) || null;
+    if (!editingAppointment) {
+      return null;
+    }
+    return patients.find(p => p.id === editingAppointment.patientId) || null;
   }, [editingAppointment, patients]);
 
   return (
