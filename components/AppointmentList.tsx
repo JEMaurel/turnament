@@ -124,9 +124,9 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
       </div>
       <div className="flex-grow overflow-y-auto space-y-2 no-scrollbar">
         {selectedDate && scheduledItems.length > 0 ? (
-          // FIX: The ternary operator was failing to properly narrow the discriminated union
-          // type for `item`. Using a full function body with an `if` statement for type
-          // guarding is a more robust pattern that ensures `item.data` is correctly typed.
+          // FIX: Switched from a ternary operator to an if/else block inside the map function.
+          // This makes the type narrowing of the discriminated union `item` more explicit for the
+          // TypeScript compiler, resolving the error where `item.data` was being inferred as `unknown`.
           scheduledItems.map((item) => {
             if (item.type === 'filled') {
               return (
@@ -138,14 +138,15 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
                   onHighlightPatient={onHighlightPatient}
                 />
               );
+            } else {
+              return (
+                <EmptySlotRow
+                  key={item.time}
+                  time={item.time}
+                  onAddNewAppointment={onAddNewAppointment}
+                />
+              );
             }
-            return (
-              <EmptySlotRow
-                key={item.time}
-                time={item.time}
-                onAddNewAppointment={onAddNewAppointment}
-              />
-            );
           })
         ) : (
           <div className="text-center text-slate-400 py-8">

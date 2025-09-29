@@ -326,6 +326,29 @@ const AiAssistantModal: React.FC<{isOpen: boolean; onClose: () => void; patients
     );
 };
 
+const DeleteAppointmentOptionsModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  patientName: string;
+  onDeleteSingle: () => void;
+  onDeleteWeek: () => void;
+  onChangeSchedule: () => void;
+}> = ({ isOpen, onClose, patientName, onDeleteSingle, onDeleteWeek, onChangeSchedule }) => {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Modificar Turno">
+      <div className="space-y-4">
+        <p>Ha seleccionado un turno de <span className="font-bold text-cyan-400">{patientName}</span>. ¿Qué desea hacer?</p>
+      </div>
+      <div className="flex flex-wrap justify-end gap-3 pt-4 mt-4 border-t border-slate-700">
+        <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cancelar</button>
+        <button onClick={onChangeSchedule} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cambiar Horario</button>
+        <button onClick={onDeleteSingle} className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar este turno</button>
+        <button onClick={onDeleteWeek} className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar turnos de la semana</button>
+      </div>
+    </Modal>
+  );
+};
+
 
 export default function App() {
   // State
@@ -388,7 +411,9 @@ export default function App() {
   const [isPatientRegistryOpen, setPatientRegistryOpen] = useState(false);
   const [isAiModalOpen, setAiModalOpen] = useState(false);
   const [defaultAppointmentTime, setDefaultAppointmentTime] = useState('11:00');
-  
+  const [isDeleteOptionsModalOpen, setDeleteOptionsModalOpen] = useState(false);
+  const [dateForDeletion, setDateForDeletion] = useState<Date | null>(null);
+
   // Memoized derived state
   const appointmentsForSelectedDay = useMemo(() => {
     if (!selectedDate) return [];
@@ -417,6 +442,11 @@ export default function App() {
       })
       .map(app => app.date);
   }, [selectedPatientId, appointments, currentDate]);
+  
+  const highlightedPatientName = useMemo(() => {
+    if (!selectedPatientId) return '';
+    return patients.find(p => p.id === selectedPatientId)?.name || 'Desconocido';
+  }, [selectedPatientId, patients]);
 
   const nextMonthDate = useMemo(() => {
     const d = new Date(currentDate);
@@ -427,9 +457,15 @@ export default function App() {
 
   // Handlers
   const handleDateClick = useCallback((date: Date) => {
-    setSelectedDate(date);
-    setSelectedPatientId(null);
-  }, []);
+    const dateString = date.toISOString().split('T')[0];
+    if (selectedPatientId && highlightedPatientDays.includes(dateString)) {
+      setDateForDeletion(date);
+      setDeleteOptionsModalOpen(true);
+    } else {
+      setSelectedDate(date);
+      setSelectedPatientId(null);
+    }
+  }, [selectedPatientId, highlightedPatientDays]);
   
   // FIX: The `onSelectAppointment` prop expects a function that takes an appointment with a `patientName`.
   // The original `Appointment` type was causing a type mismatch. This handler is updated to match.
@@ -515,6 +551,51 @@ export default function App() {
       setAppointments(prev => prev.filter(a => a.id !== appointmentId));
     }
   }, []);
+
+  const handleDeleteSingle = () => {
+    if (!dateForDeletion || !selectedPatientId) return;
+    const dateString = dateForDeletion.toISOString().split('T')[0];
+    setAppointments(prev => prev.filter(app => 
+      !(app.patientId === selectedPatientId && app.date === dateString)
+    ));
+    setDeleteOptionsModalOpen(false);
+    setDateForDeletion(null);
+  };
+
+  const handleDeleteWeek = () => {
+    if (!dateForDeletion || !selectedPatientId) return;
+
+    const targetDate = new Date(dateForDeletion);
+    const dayOfWeek = targetDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    // The calendar starts on Monday. We calculate the offset to find the start of the week (Monday).
+    const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
+    
+    const startOfWeek = new Date(targetDate);
+    startOfWeek.setDate(targetDate.getDate() - offset);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    setAppointments(prev => prev.filter(app => {
+      if (app.patientId !== selectedPatientId) {
+        return true; // Keep appointments for other patients
+      }
+      const appDate = new Date(`${app.date}T12:00:00`); // Use midday to avoid timezone issues
+      return !(appDate >= startOfWeek && appDate <= endOfWeek);
+    }));
+
+    setDeleteOptionsModalOpen(false);
+    setDateForDeletion(null);
+  };
+
+  const handleOpenScheduleForDay = () => {
+    if (!dateForDeletion) return;
+    setSelectedDate(dateForDeletion);
+    setDeleteOptionsModalOpen(false);
+    setDateForDeletion(null);
+  };
 
     const handleExportData = () => {
         const exportData = (data: any[], fileName: string) => {
@@ -603,9 +684,9 @@ export default function App() {
     }, [isResizing, handleMouseMove]);
 
   const existingPatientForModal = useMemo((): Patient | null => {
-    // FIX: Directly using the state variable `editingAppointment` inside the nested
-    // `find` callback was causing a type inference issue. Assigning it to a local
-    // constant `appointment` first helps TypeScript correctly retain the narrowed type.
+    // FIX: Introduced a local constant to hold `editingAppointment`. This helps the
+    // TypeScript compiler to correctly narrow the type after the null check,
+    // resolving an error where its properties were inaccessible.
     const appointment = editingAppointment;
     if (!appointment) {
       return null;
@@ -707,6 +788,17 @@ export default function App() {
         onClose={() => setAiModalOpen(false)}
         patients={patients}
         appointments={appointments}
+      />
+      <DeleteAppointmentOptionsModal
+        isOpen={isDeleteOptionsModalOpen}
+        onClose={() => {
+          setDeleteOptionsModalOpen(false);
+          setDateForDeletion(null);
+        }}
+        patientName={highlightedPatientName}
+        onDeleteSingle={handleDeleteSingle}
+        onDeleteWeek={handleDeleteWeek}
+        onChangeSchedule={handleOpenScheduleForDay}
       />
     </div>
   );
