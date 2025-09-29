@@ -725,7 +725,7 @@ export default function App() {
 
   const handleDeleteAppointment = useCallback((appointmentId: string) => {
     if (window.confirm("¿Estás seguro de que quieres eliminar este turno?")) {
-      // FIX: Explicitly type `prev` to prevent TypeScript from inferring `a` as `unknown`.
+      // FIX: Explicitly typing `prev` prevents TypeScript from inferring `a` as `unknown`.
       setAppointments((prev: Appointment[]) => prev.filter(a => a.id !== appointmentId));
     }
   }, []);
@@ -734,9 +734,10 @@ export default function App() {
     if (!dateForDeletion || !selectedPatientId) return;
     const dateString = dateForDeletion.toISOString().split('T')[0];
     // Fix: Explicitly type the 'prev' parameter to resolve type inference error on 'app.patientId'
-    // FIX: Explicitly type the `prev` parameter in the `setAppointments` callback to ensure
+    // FIX: Explicitly typing the `prev` parameter in the `setAppointments` callback ensures
     // TypeScript correctly infers the type of `app` within the filter function. This
     // resolves an error where `app` was being inferred as `unknown`.
+    // FIX: Explicitly typing `prev` prevents TypeScript from inferring `app` as `unknown`.
     setAppointments((prev: Appointment[]) => prev.filter(app => 
       !(app.patientId === selectedPatientId && app.date === dateString)
     ));
@@ -760,7 +761,7 @@ export default function App() {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
-    // FIX: Explicitly type `prev` to prevent TypeScript from inferring `app` as `unknown`.
+    // FIX: Explicitly typing `prev` to prevent TypeScript from inferring `app` as `unknown`.
     setAppointments((prev: Appointment[]) => prev.filter(app => {
       if (app.patientId !== selectedPatientId) {
         return true; // Keep appointments for other patients
@@ -782,7 +783,7 @@ export default function App() {
     const targetDateString = targetDate.toISOString().split('T')[0];
     const targetDayOfWeek = targetDate.getDay();
 
-    // FIX: Explicitly type `prev` to prevent TypeScript from inferring `app` as `unknown`.
+    // FIX: Explicitly typing `prev` to prevent TypeScript from inferring `app` as `unknown`.
     setAppointments((prev: Appointment[]) => prev.filter(app => {
         // Keep appointments if they don't belong to the selected patient
         if (app.patientId !== selectedPatientId) {
@@ -1037,14 +1038,8 @@ export default function App() {
               onMonthChange={setCurrentDate}
             />
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-700 flex-1 min-h-0">
-            {recurringSlotsView ? (
-              <RecurringSlotsViewer 
-                date={recurringSlotsView.date}
-                slots={recurringSlotsView.slots}
-                onClose={() => setRecurringSlotsView(null)}
-              />
-            ) : (
+          <div className="mt-4 pt-4 border-t border-slate-700 flex-1 min-h-0 flex flex-col gap-4">
+            <div className="flex-shrink-0">
               <Calendar
                 currentDate={nextMonthDate}
                 selectedDate={selectedDate}
@@ -1054,6 +1049,15 @@ export default function App() {
                 weeksToShow={3}
                 showNavigation={false}
               />
+            </div>
+            {recurringSlotsView && (
+              <div className="flex-grow min-h-0">
+                  <RecurringSlotsViewer 
+                    date={recurringSlotsView.date}
+                    slots={recurringSlotsView.slots}
+                    onClose={() => setRecurringSlotsView(null)}
+                  />
+              </div>
             )}
           </div>
         </div>
