@@ -512,11 +512,48 @@ export default function App() {
           setPatients(prev => [...prev, patientData]);
       }
 
-      // Update or create appointment
+      const renumberFutureSessions = (
+          allAppointments: Appointment[],
+          triggerAppointment: Appointment
+      ): Appointment[] => {
+          const { patientId, date: startDate, time: startTime, session: startSession } = triggerAppointment;
+
+          const sessionMatch = startSession.match(/^(\d+)(.*)$/);
+          if (!sessionMatch) return allAppointments; // Not a valid format, do nothing
+
+          let currentSessionNumber = parseInt(sessionMatch[1], 10);
+          const sessionSuffix = sessionMatch[2] || '';
+
+          const futureAppointments = allAppointments
+              .filter(app =>
+                  app.patientId === patientId &&
+                  (app.date > startDate || (app.date === startDate && app.time > startTime))
+              )
+              .sort((a, b) => {
+                  if (a.date !== b.date) return a.date.localeCompare(b.date);
+                  return a.time.localeCompare(b.time);
+              });
+
+          const updatedAppointmentsMap = new Map(allAppointments.map(app => [app.id, { ...app }]));
+
+          for (const appToUpdate of futureAppointments) {
+              currentSessionNumber++;
+              const updatedApp = { ...appToUpdate, session: `${currentSessionNumber}${sessionSuffix}` };
+              updatedAppointmentsMap.set(appToUpdate.id, updatedApp);
+          }
+
+          return Array.from(updatedAppointmentsMap.values());
+      };
+
       const appointmentExists = appointments.some(a => a.id === appointmentData.id);
+      
       if (appointmentExists) {
-          setAppointments(prev => prev.map(a => a.id === appointmentData.id ? appointmentData : a));
+          // Update existing appointment and re-number subsequent sessions
+          const updatedAppointments = appointments.map(a => a.id === appointmentData.id ? appointmentData : a);
+          const renumberedAppointments = renumberFutureSessions(updatedAppointments, appointmentData);
+          setAppointments(renumberedAppointments);
       } else {
+          // Create new appointment(s)
           let newAppointments: Appointment[] = [appointmentData];
           if (recurringDays.length > 0 && selectedDate && recurringWeeks > 0) {
               const appointmentsToCreate: Appointment[] = [];
@@ -539,11 +576,27 @@ export default function App() {
               newAppointments.push(...appointmentsToCreate);
           }
           
+          // Auto-increment session numbers for the new batch
+          if (newAppointments.length > 1) {
+              const sessionMatch = newAppointments[0].session.match(/^(\d+)(.*)$/);
+              if (sessionMatch) {
+                  let sessionCounter = parseInt(sessionMatch[1], 10);
+                  const sessionSuffix = sessionMatch[2] || '';
+                  
+                  newAppointments.sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+                  
+                  newAppointments[0].session = `${sessionCounter}${sessionSuffix}`;
+                  for (let i = 1; i < newAppointments.length; i++) {
+                      sessionCounter++;
+                      newAppointments[i].session = `${sessionCounter}${sessionSuffix}`;
+                  }
+              }
+          }
+
           const existingAppointmentsByDateTime = new Map(appointments.map(app => [`${app.date}|${app.time}`, app]));
           const conflicts = newAppointments.filter(newApp => existingAppointmentsByDateTime.has(`${newApp.date}|${newApp.time}`));
 
           if (conflicts.length > 0) {
-              // FIX: Replaced .map() with a for...of loop to resolve a TypeScript inference issue where `existing` was being typed as `unknown`.
               const conflictDetailsList: string[] = [];
               for (const c of conflicts) {
                   const existing = existingAppointmentsByDateTime.get(`${c.date}|${c.time}`);
@@ -555,7 +608,7 @@ export default function App() {
               const conflictDetails = conflictDetailsList.join('\n');
 
               if (!window.confirm(`Atención: Los siguientes turnos se sobrescribirán:\n${conflictDetails}\n\n¿Desea continuar?`)) {
-                  return; // Abort if user cancels
+                  return;
               }
 
               const conflictKeys = new Set(conflicts.map(c => `${c.date}|${c.time}`));
@@ -570,16 +623,18 @@ export default function App() {
 
   const handleDeleteAppointment = useCallback((appointmentId: string) => {
     if (window.confirm("¿Estás seguro de que quieres eliminar este turno?")) {
-      setAppointments(prev => prev.filter(a => a.id !== appointmentId));
+      // FIX: Explicitly type `prev` to prevent TypeScript from inferring `a` as `unknown`.
+      setAppointments((prev: Appointment[]) => prev.filter(a => a.id !== appointmentId));
     }
   }, []);
 
   const handleDeleteSingle = () => {
     if (!dateForDeletion || !selectedPatientId) return;
     const dateString = dateForDeletion.toISOString().split('T')[0];
-    // FIX: Explicitly type the `app` parameter in the `filter` callback to prevent
-    // it from being inferred as `unknown`, which causes a compile error.
-    setAppointments(prev => prev.filter((app: Appointment) => 
+    // FIX: Explicitly type the `prev` parameter in the `setAppointments` callback to ensure
+    // TypeScript correctly infers the type of `app` within the filter function. This
+    // resolves an error where `app` was being inferred as `unknown`.
+    setAppointments((prev: Appointment[]) => prev.filter(app => 
       !(app.patientId === selectedPatientId && app.date === dateString)
     ));
     setDeleteOptionsModalOpen(false);
@@ -602,7 +657,8 @@ export default function App() {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
-    setAppointments(prev => prev.filter(app => {
+    // FIX: Explicitly type `prev` to prevent TypeScript from inferring `app` as `unknown`.
+    setAppointments((prev: Appointment[]) => prev.filter(app => {
       if (app.patientId !== selectedPatientId) {
         return true; // Keep appointments for other patients
       }
@@ -623,7 +679,8 @@ export default function App() {
     const targetDateString = targetDate.toISOString().split('T')[0];
     const targetDayOfWeek = targetDate.getDay();
 
-    setAppointments(prev => prev.filter(app => {
+    // FIX: Explicitly type `prev` to prevent TypeScript from inferring `app` as `unknown`.
+    setAppointments((prev: Appointment[]) => prev.filter(app => {
         // Keep appointments if they don't belong to the selected patient
         if (app.patientId !== selectedPatientId) {
             return true;
@@ -825,14 +882,14 @@ export default function App() {
     }, [isResizing, handleMouseMove]);
 
   const existingPatientForModal = useMemo((): Patient | null => {
-    // FIX: Restructured to be more robust against type inference failure. By casting
-    // `editingAppointment` to a typed variable and then performing a null check, we ensure
-    // TypeScript correctly understands the type before property access.
-    const appointment = editingAppointment as AppointmentWithDetails | null;
-    if (!appointment) {
-      return null;
+    // FIX: Restructured to be more robust against type inference failure. By explicitly
+    // checking if editingAppointment exists before accessing its properties, we guide
+    // TypeScript's type narrowing and resolve the inference error on `patientId`.
+    if (editingAppointment) {
+      const patient = patients.find(p => p.id === editingAppointment.patientId);
+      return patient || null;
     }
-    return patients.find(p => p.id === appointment.patientId) || null;
+    return null;
   }, [editingAppointment, patients]);
 
   return (
