@@ -426,7 +426,8 @@ export default function App() {
     const dateStr = selectedDate.toISOString().split('T')[0];
     return appointments
       .filter(app => app.date === dateStr)
-      .map(app => {
+      // FIX: Add explicit type annotation to map callback to ensure correct type inference.
+      .map((app): AppointmentWithDetails => {
         const patient = patients.find(p => p.id === app.patientId);
         return {
           ...app,

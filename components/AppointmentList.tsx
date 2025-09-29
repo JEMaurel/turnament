@@ -36,7 +36,7 @@ const AppointmentRow: React.FC<{
                 aria-label={`Ver observación activa para ${appointment.patientName}`}
                 title="Observación activa. Click para ver o editar."
             >
-                <div className="w-2.5 h-2.5 bg-amber-400 rounded-full"></div>
+                <div className="w-2.5 h-2.5 bg-amber-500 rounded-full"></div>
             </button>
         )}
         <button
@@ -128,8 +128,8 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
   return (
     <div className="p-4 bg-slate-800/50 rounded-lg shadow-lg h-full flex flex-col">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">
-          Turnos para: <span className="text-cyan-400">{selectedDate ? selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Ningún día seleccionado'}</span>
+        <h2 className="text-xl font-bold capitalize">
+          <span className="text-cyan-400">{selectedDate ? selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Ningún día seleccionado'}</span>
         </h2>
       </div>
       <div className="flex-grow overflow-y-auto space-y-2 no-scrollbar">
