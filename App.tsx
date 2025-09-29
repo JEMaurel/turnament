@@ -420,21 +420,24 @@ export default function App() {
   const [dateForDeletion, setDateForDeletion] = useState<Date | null>(null);
 
   // Memoized derived state
-  // FIX: Added an explicit return type to useMemo to prevent TypeScript from incorrectly inferring the type as `unknown[]`.
+  // FIX: Refactored to use a for...of loop instead of .map() to prevent a subtle TypeScript 
+  // inference issue where the returned array elements were being typed as `unknown`.
   const appointmentsForSelectedDay = useMemo((): AppointmentWithDetails[] => {
     if (!selectedDate) return [];
     const dateStr = selectedDate.toISOString().split('T')[0];
-    return appointments
-      .filter(app => app.date === dateStr)
-      // FIX: Add explicit type annotation to map callback to ensure correct type inference.
-      .map((app): AppointmentWithDetails => {
-        const patient = patients.find(p => p.id === app.patientId);
-        return {
-          ...app,
-          patientName: patient?.name || 'Desconocido',
-          observations: patient?.observations
-        };
+    
+    const result: AppointmentWithDetails[] = [];
+    const filteredApps = appointments.filter(app => app.date === dateStr);
+
+    for (const app of filteredApps) {
+      const patient = patients.find(p => p.id === app.patientId);
+      result.push({
+        ...app,
+        patientName: patient?.name || 'Desconocido',
+        observations: patient?.observations
       });
+    }
+    return result;
   }, [selectedDate, appointments, patients]);
 
   const highlightedPatientDays = useMemo(() => {

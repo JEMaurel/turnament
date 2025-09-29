@@ -36,7 +36,7 @@ const AppointmentRow: React.FC<{
                 aria-label={`Ver observación activa para ${appointment.patientName}`}
                 title="Observación activa. Click para ver o editar."
             >
-                <div className="w-2.5 h-2.5 bg-amber-500 rounded-full"></div>
+                <div className="w-2.5 h-2.5 bg-amber-600 rounded-full"></div>
             </button>
         )}
         <button
@@ -109,8 +109,17 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
       }
     }
 
-    const appointmentsByTime = new Map(appointments.map(app => [app.time, app]));
-    const allTimes = new Set([...baseSlots, ...appointments.map(app => app.time)]);
+    // FIX: Replaced .map() with for...of loops to avoid TypeScript inference issues.
+    const appointmentsByTime = new Map<string, AppointmentWithDetails>();
+    for (const app of appointments) {
+      appointmentsByTime.set(app.time, app);
+    }
+
+    const allTimes = new Set(baseSlots);
+    for (const app of appointments) {
+      allTimes.add(app.time);
+    }
+
     const sortedTimes = Array.from(allTimes).sort((a, b) => a.localeCompare(b));
 
     const items: ScheduledItem[] = [];
@@ -127,7 +136,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
 
   return (
     <div className="p-4 bg-slate-800/50 rounded-lg shadow-lg h-full flex flex-col">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-center items-center mb-4">
         <h2 className="text-xl font-bold capitalize">
           <span className="text-cyan-400">{selectedDate ? selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Ningún día seleccionado'}</span>
         </h2>
