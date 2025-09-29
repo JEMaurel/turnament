@@ -338,7 +338,8 @@ const DeleteAppointmentOptionsModal: React.FC<{
   onDeleteSingle: () => void;
   onDeleteWeek: () => void;
   onChangeSchedule: () => void;
-}> = ({ isOpen, onClose, patientName, onDeleteSingle, onDeleteWeek, onChangeSchedule }) => {
+  onDeleteColumn: () => void;
+}> = ({ isOpen, onClose, patientName, onDeleteSingle, onDeleteWeek, onChangeSchedule, onDeleteColumn }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Modificar Turno">
       <div className="space-y-4">
@@ -349,6 +350,7 @@ const DeleteAppointmentOptionsModal: React.FC<{
         <button onClick={onChangeSchedule} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cambiar Horario</button>
         <button onClick={onDeleteSingle} className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar este turno</button>
         <button onClick={onDeleteWeek} className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar turnos de la semana</button>
+        <button onClick={onDeleteColumn} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar Columna</button>
       </div>
     </Modal>
   );
@@ -539,11 +541,16 @@ export default function App() {
           const conflicts = newAppointments.filter(newApp => existingAppointmentsByDateTime.has(`${newApp.date}|${newApp.time}`));
 
           if (conflicts.length > 0) {
-              const conflictDetails = conflicts.map(c => {
-                  const existing = existingAppointmentsByDateTime.get(`${c.date}|${c.time}`)!;
-                  const patientName = patients.find(p => p.id === existing.patientId)?.name || 'Desconocido';
-                  return `- ${new Date(c.date + 'T12:00:00').toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit'})} a las ${c.time} con ${patientName}`;
-              }).join('\n');
+              // FIX: Replaced .map() with a for...of loop to resolve a TypeScript inference issue where `existing` was being typed as `unknown`.
+              const conflictDetailsList: string[] = [];
+              for (const c of conflicts) {
+                  const existing = existingAppointmentsByDateTime.get(`${c.date}|${c.time}`);
+                  if (existing) {
+                      const patientName = patients.find(p => p.id === existing.patientId)?.name || 'Desconocido';
+                      conflictDetailsList.push(`- ${new Date(c.date + 'T12:00:00').toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit'})} a las ${c.time} con ${patientName}`);
+                  }
+              }
+              const conflictDetails = conflictDetailsList.join('\n');
 
               if (!window.confirm(`Atención: Los siguientes turnos se sobrescribirán:\n${conflictDetails}\n\n¿Desea continuar?`)) {
                   return; // Abort if user cancels
@@ -601,6 +608,42 @@ export default function App() {
 
     setDeleteOptionsModalOpen(false);
     setDateForDeletion(null);
+  };
+
+  const handleDeleteColumn = () => {
+    if (!dateForDeletion || !selectedPatientId) return;
+    
+    const targetDate = new Date(dateForDeletion);
+    targetDate.setHours(0, 0, 0, 0); // Normalize for comparison
+
+    const targetDateString = targetDate.toISOString().split('T')[0];
+    const targetDayOfWeek = targetDate.getDay();
+
+    setAppointments(prev => prev.filter(app => {
+        // Keep appointments if they don't belong to the selected patient
+        if (app.patientId !== selectedPatientId) {
+            return true;
+        }
+        
+        const appDate = new Date(`${app.date}T12:00:00`); // Use midday to avoid timezone issues for getDay()
+
+        // Check if the appointment is after the target date AND on the same day of the week
+        const isFutureDate = app.date > targetDateString;
+        const isSameDayOfWeek = appDate.getDay() === targetDayOfWeek;
+
+        // If both conditions are true, we filter out (delete) this appointment
+        if (isFutureDate && isSameDayOfWeek) {
+            return false;
+        }
+        
+        // Otherwise, keep the appointment
+        return true;
+    }));
+
+    // Reset state after the operation
+    setDeleteOptionsModalOpen(false);
+    setDateForDeletion(null);
+    setSelectedPatientId(null); // Clear highlight for better UX feedback
   };
 
   const handleOpenScheduleForDay = () => {
@@ -697,9 +740,9 @@ export default function App() {
     }, [isResizing, handleMouseMove]);
 
   const existingPatientForModal = useMemo((): Patient | null => {
-    // FIX: With `editingAppointment` correctly typed, optional chaining now works as intended
-    // to safely access `patientId` without the compiler inferring `unknown`.
-    const patientId = editingAppointment?.patientId;
+    // FIX: Explicitly cast `editingAppointment` to resolve a TypeScript inference issue where its
+    // type was being inferred as `unknown` within this `useMemo` hook.
+    const patientId = (editingAppointment as AppointmentWithDetails | null)?.patientId;
     if (!patientId) {
       return null;
     }
@@ -811,6 +854,7 @@ export default function App() {
         onDeleteSingle={handleDeleteSingle}
         onDeleteWeek={handleDeleteWeek}
         onChangeSchedule={handleOpenScheduleForDay}
+        onDeleteColumn={handleDeleteColumn}
       />
     </div>
   );
