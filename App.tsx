@@ -358,6 +358,44 @@ const DeleteAppointmentOptionsModal: React.FC<{
   );
 };
 
+const RecurringSlotsViewer: React.FC<{
+  date: Date;
+  slots: string[];
+  onClose: () => void;
+}> = ({ date, slots, onClose }) => {
+  const dayName = date.toLocaleDateString('es-ES', { weekday: 'long' });
+
+  return (
+    <div className="p-4 bg-slate-800 rounded-lg shadow-lg relative h-full flex flex-col">
+      <button 
+        onClick={onClose} 
+        className="absolute top-2 right-2 text-slate-400 hover:text-white z-10 p-1 text-2xl"
+        aria-label="Cerrar vista de turnos recurrentes"
+      >
+        &times;
+      </button>
+      <h3 className="text-xl font-bold capitalize text-center mb-4">
+        Disponibles los <span className="text-cyan-400">{dayName}</span>
+      </h3>
+      <div className="flex-grow overflow-y-auto no-scrollbar pr-2">
+        {slots.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
+            {slots.map(slot => (
+              <div key={slot} className="p-2 bg-slate-700 rounded-md font-mono text-white">
+                {slot}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-slate-400 pt-8">
+            No hay horarios recurrentes 100% libres para los próximos 3 meses.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 
 export default function App() {
   // State
@@ -422,6 +460,9 @@ export default function App() {
   const [defaultAppointmentTime, setDefaultAppointmentTime] = useState('11:00');
   const [isDeleteOptionsModalOpen, setDeleteOptionsModalOpen] = useState(false);
   const [dateForDeletion, setDateForDeletion] = useState<Date | null>(null);
+  
+  // New state for recurring slots viewer
+  const [recurringSlotsView, setRecurringSlotsView] = useState<{ date: Date; slots: string[] } | null>(null);
 
   // Memoized derived state
   // FIX: Refactored to use a for...of loop instead of .map() to prevent a subtle TypeScript 
@@ -474,16 +515,76 @@ export default function App() {
 
 
   // Handlers
+   const calculateRecurringSlots = useCallback((clickedDate: Date): string[] => {
+    const searchWeeks = 12; // Check for the next 3 months
+    const availableSlots: string[] = [];
+
+    const scheduleStartHour = 11;
+    const scheduleEndHour = 18;
+    const standardSlots: string[] = [];
+    for (let h = scheduleStartHour; h <= scheduleEndHour; h++) {
+        standardSlots.push(`${String(h).padStart(2, '0')}:00`);
+        if (h < scheduleEndHour) {
+            standardSlots.push(`${String(h).padStart(2, '0')}:30`);
+        }
+    }
+
+    const appointmentsLookup = new Set(
+        appointments.map(app => `${app.date}|${app.time}`)
+    );
+
+    for (const slot of standardSlots) {
+        let isSlotConsistentlyAvailable = true;
+        for (let week = 0; week < searchWeeks; week++) {
+            const dateToCheck = new Date(clickedDate);
+            dateToCheck.setDate(dateToCheck.getDate() + (week * 7));
+            const dateString = dateToCheck.toISOString().split('T')[0];
+
+            if (appointmentsLookup.has(`${dateString}|${slot}`)) {
+                isSlotConsistentlyAvailable = false;
+                break;
+            }
+        }
+
+        if (isSlotConsistentlyAvailable) {
+            availableSlots.push(slot);
+        }
+    }
+
+    return availableSlots;
+  }, [appointments]);
+
   const handleDateClick = useCallback((date: Date) => {
     const dateString = date.toISOString().split('T')[0];
+
     if (selectedPatientId && highlightedPatientDays.includes(dateString)) {
-      setDateForDeletion(date);
-      setDeleteOptionsModalOpen(true);
-    } else {
-      setSelectedDate(date);
-      setSelectedPatientId(null);
+        setDateForDeletion(date);
+        setDeleteOptionsModalOpen(true);
+        return; 
     }
-  }, [selectedPatientId, highlightedPatientDays]);
+    
+    // Toggle recurring slots view if clicking the same day
+    if (recurringSlotsView && recurringSlotsView.date.toISOString().split('T')[0] === dateString) {
+        setRecurringSlotsView(null);
+    } else {
+        const availableRecurringSlots = calculateRecurringSlots(date);
+        setRecurringSlotsView({ date, slots: availableRecurringSlots });
+    }
+
+    setSelectedDate(date);
+    if (!selectedPatientId) {
+       // Only clear highlight if we are not in highlight mode
+       setSelectedPatientId(null);
+    }
+    // If we are in highlight mode, clicking a non-highlighted day will switch context
+    // and this condition will be false, so the highlight remains until explicitly cleared.
+    // Clicking a highlighted day is handled by the block above.
+    if(selectedPatientId && !highlightedPatientDays.includes(dateString)) {
+       setSelectedPatientId(null);
+    }
+
+
+  }, [selectedPatientId, highlightedPatientDays, recurringSlotsView, calculateRecurringSlots]);
   
   // FIX: Updated handler to use the centralized AppointmentWithDetails type.
   const handleSelectAppointment = useCallback((appointment: AppointmentWithDetails) => {
@@ -494,6 +595,7 @@ export default function App() {
 
   const handleHighlightPatient = useCallback((patientId: string) => {
     setSelectedPatientId(prevId => (prevId === patientId ? null : patientId));
+    setRecurringSlotsView(null); // Close recurring view when highlighting
   }, []);
 
   const handleOpenNewAppointment = useCallback((time?: string) => {
@@ -631,6 +733,7 @@ export default function App() {
   const handleDeleteSingle = () => {
     if (!dateForDeletion || !selectedPatientId) return;
     const dateString = dateForDeletion.toISOString().split('T')[0];
+    // Fix: Explicitly type the 'prev' parameter to resolve type inference error on 'app.patientId'
     // FIX: Explicitly type the `prev` parameter in the `setAppointments` callback to ensure
     // TypeScript correctly infers the type of `app` within the filter function. This
     // resolves an error where `app` was being inferred as `unknown`.
@@ -881,6 +984,7 @@ export default function App() {
         };
     }, [isResizing, handleMouseMove]);
 
+  // Fix: Restructuring the logic to safely access `patientId` by first checking if `editingAppointment` exists. This helps TypeScript's type narrowing and prevents errors on potentially null objects.
   const existingPatientForModal = useMemo((): Patient | null => {
     // FIX: Restructured to be more robust against type inference failure. By explicitly
     // checking if editingAppointment exists before accessing its properties, we guide
@@ -933,8 +1037,15 @@ export default function App() {
               onMonthChange={setCurrentDate}
             />
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-700 flex-shrink-0">
-             <Calendar
+          <div className="mt-4 pt-4 border-t border-slate-700 flex-1 min-h-0">
+            {recurringSlotsView ? (
+              <RecurringSlotsViewer 
+                date={recurringSlotsView.date}
+                slots={recurringSlotsView.slots}
+                onClose={() => setRecurringSlotsView(null)}
+              />
+            ) : (
+              <Calendar
                 currentDate={nextMonthDate}
                 selectedDate={selectedDate}
                 onDateClick={handleDateClick}
@@ -943,6 +1054,7 @@ export default function App() {
                 weeksToShow={3}
                 showNavigation={false}
               />
+            )}
           </div>
         </div>
         
