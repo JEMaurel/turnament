@@ -339,7 +339,8 @@ const DeleteAppointmentOptionsModal: React.FC<{
   onDeleteWeek: () => void;
   onChangeSchedule: () => void;
   onDeleteColumn: () => void;
-}> = ({ isOpen, onClose, patientName, onDeleteSingle, onDeleteWeek, onChangeSchedule, onDeleteColumn }) => {
+  onExtendWeek: () => void;
+}> = ({ isOpen, onClose, patientName, onDeleteSingle, onDeleteWeek, onChangeSchedule, onDeleteColumn, onExtendWeek }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Modificar Turno">
       <div className="space-y-4">
@@ -347,6 +348,7 @@ const DeleteAppointmentOptionsModal: React.FC<{
       </div>
       <div className="flex flex-wrap justify-end gap-3 pt-4 mt-4 border-t border-slate-700">
         <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cancelar</button>
+        <button onClick={onExtendWeek} className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Extender Semana</button>
         <button onClick={onChangeSchedule} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cambiar Horario</button>
         <button onClick={onDeleteSingle} className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar este turno</button>
         <button onClick={onDeleteWeek} className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar turnos de la semana</button>
@@ -524,7 +526,7 @@ export default function App() {
               let currentDatePointer = new Date(selectedDate);
               currentDatePointer.setDate(currentDatePointer.getDate() + 1);
 
-              while(currentDatePointer <= endDate) {
+              while(currentDatePointer < endDate) {
                   if (recurringDays.includes(currentDatePointer.getDay())) {
                       appointmentsToCreate.push({
                           ...appointmentData,
@@ -575,7 +577,9 @@ export default function App() {
   const handleDeleteSingle = () => {
     if (!dateForDeletion || !selectedPatientId) return;
     const dateString = dateForDeletion.toISOString().split('T')[0];
-    setAppointments(prev => prev.filter(app => 
+    // FIX: Explicitly type the `app` parameter in the `filter` callback to prevent
+    // it from being inferred as `unknown`, which causes a compile error.
+    setAppointments(prev => prev.filter((app: Appointment) => 
       !(app.patientId === selectedPatientId && app.date === dateString)
     ));
     setDeleteOptionsModalOpen(false);
@@ -644,6 +648,87 @@ export default function App() {
     setDeleteOptionsModalOpen(false);
     setDateForDeletion(null);
     setSelectedPatientId(null); // Clear highlight for better UX feedback
+  };
+
+  const handleExtendWeek = () => {
+    if (!dateForDeletion || !selectedPatientId) return;
+
+    const targetDate = new Date(dateForDeletion);
+    const dayOfWeek = targetDate.getDay();
+    const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
+    
+    const startOfWeek = new Date(targetDate);
+    startOfWeek.setDate(targetDate.getDate() - offset);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const appointmentsInWeek = appointments.filter(app => {
+        if (app.patientId !== selectedPatientId) return false;
+        const appDate = new Date(`${app.date}T12:00:00`);
+        return appDate >= startOfWeek && appDate <= endOfWeek;
+    });
+
+    if (appointmentsInWeek.length === 0) {
+        alert("No se encontraron turnos para este paciente en la semana seleccionada para extender.");
+        setDeleteOptionsModalOpen(false);
+        setDateForDeletion(null);
+        return;
+    }
+
+    const incrementSession = (session: string): string => {
+      const match = session.match(/^(\d+)(\s*\/.*)?$/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        const rest = match[2] || '';
+        return `${num + 1}${rest}`;
+      }
+      return session;
+    };
+
+    const newAppointments = appointmentsInWeek.map(app => {
+        const nextWeekDate = new Date(`${app.date}T12:00:00`);
+        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+        return {
+            ...app,
+            id: `app-${Date.now()}-${nextWeekDate.toISOString()}`,
+            date: nextWeekDate.toISOString().split('T')[0],
+            session: incrementSession(app.session),
+        };
+    });
+
+    const existingAppointmentsByDateTime = new Map(appointments.map(app => [`${app.date}|${app.time}`, app]));
+    const conflicts = newAppointments.filter(newApp => existingAppointmentsByDateTime.has(`${newApp.date}|${newApp.time}`));
+
+    if (conflicts.length > 0) {
+        const conflictDetailsList: string[] = [];
+        for (const c of conflicts) {
+            const existing = existingAppointmentsByDateTime.get(`${c.date}|${c.time}`);
+            if (existing) {
+                const patientName = patients.find(p => p.id === existing.patientId)?.name || 'Desconocido';
+                conflictDetailsList.push(`- ${new Date(c.date + 'T12:00:00').toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit'})} a las ${c.time} con ${patientName}`);
+            }
+        }
+        const conflictDetails = conflictDetailsList.join('\n');
+
+        if (!window.confirm(`Atención: Los siguientes turnos se sobrescribirán:\n${conflictDetails}\n\n¿Desea continuar?`)) {
+            setDeleteOptionsModalOpen(false);
+            setDateForDeletion(null);
+            return;
+        }
+
+        const conflictKeys = new Set(conflicts.map(c => `${c.date}|${c.time}`));
+        const nonConflictingAppointments = appointments.filter(app => !conflictKeys.has(`${app.date}|${app.time}`));
+        setAppointments([...nonConflictingAppointments, ...newAppointments]);
+    } else {
+        setAppointments(prev => [...prev, ...newAppointments]);
+    }
+
+    setDeleteOptionsModalOpen(false);
+    setDateForDeletion(null);
+    setSelectedPatientId(null);
   };
 
   const handleOpenScheduleForDay = () => {
@@ -740,13 +825,14 @@ export default function App() {
     }, [isResizing, handleMouseMove]);
 
   const existingPatientForModal = useMemo((): Patient | null => {
-    // FIX: Explicitly cast `editingAppointment` to resolve a TypeScript inference issue where its
-    // type was being inferred as `unknown` within this `useMemo` hook.
-    const patientId = (editingAppointment as AppointmentWithDetails | null)?.patientId;
-    if (!patientId) {
+    // FIX: Restructured to be more robust against type inference failure. By casting
+    // `editingAppointment` to a typed variable and then performing a null check, we ensure
+    // TypeScript correctly understands the type before property access.
+    const appointment = editingAppointment as AppointmentWithDetails | null;
+    if (!appointment) {
       return null;
     }
-    return patients.find(p => p.id === patientId) || null;
+    return patients.find(p => p.id === appointment.patientId) || null;
   }, [editingAppointment, patients]);
 
   return (
@@ -855,6 +941,7 @@ export default function App() {
         onDeleteWeek={handleDeleteWeek}
         onChangeSchedule={handleOpenScheduleForDay}
         onDeleteColumn={handleDeleteColumn}
+        onExtendWeek={handleExtendWeek}
       />
     </div>
   );
