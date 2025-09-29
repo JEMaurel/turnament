@@ -1,23 +1,19 @@
 import React, { useMemo } from 'react';
-import type { Appointment, Patient } from '../types';
-
-// FIX: Added a specific type alias for an appointment that includes the patient's name.
-// This resolves a subtle type inference issue where the compiler failed to correctly narrow
-// the type of `item.data` within the `scheduledItems.map` function, leading to a type error.
-type AppointmentWithPatientName = Appointment & { patientName: string };
+// FIX: Imported the centralized AppointmentWithDetails type to ensure type consistency.
+import type { Appointment, Patient, AppointmentWithDetails } from '../types';
 
 interface AppointmentListProps {
   selectedDate: Date | null;
-  appointments: AppointmentWithPatientName[];
-  onSelectAppointment: (appointment: AppointmentWithPatientName) => void;
+  appointments: AppointmentWithDetails[];
+  onSelectAppointment: (appointment: AppointmentWithDetails) => void;
   onDeleteAppointment: (appointmentId: string) => void;
   onAddNewAppointment: (time?: string) => void;
   onHighlightPatient: (patientId: string) => void;
 }
 
 const AppointmentRow: React.FC<{ 
-  appointment: AppointmentWithPatientName; 
-  onSelectAppointment: (appointment: AppointmentWithPatientName) => void; 
+  appointment: AppointmentWithDetails; 
+  onSelectAppointment: (appointment: AppointmentWithDetails) => void; 
   onDeleteAppointment: (appointmentId: string) => void;
   onHighlightPatient: (patientId: string) => void;
 }> = ({ appointment, onSelectAppointment, onDeleteAppointment, onHighlightPatient }) => {
@@ -30,6 +26,19 @@ const AppointmentRow: React.FC<{
       <div className="font-semibold text-white truncate">{appointment.patientName}</div>
       <div className="flex items-center gap-2 text-slate-400">
         <span>{appointment.session}</span>
+        {appointment.observations && (
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectAppointment(appointment);
+                }}
+                className="p-1 rounded-full hover:bg-slate-600 transition-colors"
+                aria-label={`Ver observación activa para ${appointment.patientName}`}
+                title="Observación activa. Click para ver o editar."
+            >
+                <div className="w-2.5 h-2.5 bg-amber-400 rounded-full"></div>
+            </button>
+        )}
         <button
             onClick={(e) => {
                 e.stopPropagation();
@@ -77,7 +86,7 @@ const EmptySlotRow: React.FC<{time: string; onAddNewAppointment: (time: string) 
     </div>
 );
 
-type ScheduledItem = { type: 'filled'; data: AppointmentWithPatientName } | { type: 'empty'; time: string };
+type ScheduledItem = { type: 'filled'; data: AppointmentWithDetails } | { type: 'empty'; time: string };
 
 const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient }) => {
 
@@ -85,7 +94,8 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
   // TypeScript inference issue where the previous `map/filter` approach caused `item.data`
   // to be incorrectly typed as `unknown` in the render method, leading to a compile error.
   // This more direct approach ensures the type is correctly maintained.
-  const scheduledItems: ScheduledItem[] = useMemo(() => {
+  // FIX: Added an explicit return type to the useMemo hook to ensure TypeScript correctly infers the type of scheduledItems.
+  const scheduledItems: ScheduledItem[] = useMemo((): ScheduledItem[] => {
     if (!selectedDate) return [];
 
     const scheduleStartHour = 11;
@@ -124,10 +134,10 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
       </div>
       <div className="flex-grow overflow-y-auto space-y-2 no-scrollbar">
         {selectedDate && scheduledItems.length > 0 ? (
-          // FIX: Switched from a ternary operator to an if/else block inside the map function.
-          // This makes the type narrowing of the discriminated union `item` more explicit for the
-          // TypeScript compiler, resolving the error where `item.data` was being inferred as `unknown`.
-          scheduledItems.map((item) => {
+          // FIX: By explicitly typing `item` as `ScheduledItem` in the map callback,
+          // we help the TypeScript compiler correctly narrow the discriminated union.
+          // This resolves the error where `item.data` was being inferred as `unknown`.
+          scheduledItems.map((item: ScheduledItem) => {
             if (item.type === 'filled') {
               return (
                 <AppointmentRow

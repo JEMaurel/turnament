@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
-import type { Patient, Appointment } from './types';
+// FIX: Imported the centralized AppointmentWithDetails type to ensure type consistency.
+import type { Patient, Appointment, AppointmentWithDetails } from './types';
 import { getAiAssistance } from './services/geminiService';
 
 // Modal Components defined within App.tsx to easily access state and handlers
@@ -25,8 +26,8 @@ const AppointmentModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   onSave: (appointmentData: Appointment, patientData: Patient, recurringDays: number[], recurringWeeks: number) => void;
-  // FIX: Updated existingAppointment to handle the extended type with patientName.
-  existingAppointment: (Appointment & { patientName: string }) | null;
+  // FIX: Updated existingAppointment to use the centralized AppointmentWithDetails type.
+  existingAppointment: AppointmentWithDetails | null;
   existingPatient: Patient | null;
   patients: Patient[];
   selectedDate: Date;
@@ -43,6 +44,7 @@ const AppointmentModal: React.FC<{
     const [observations, setObservations] = useState('');
     const [recurringDays, setRecurringDays] = useState<number[]>([]);
     const [recurringWeeks, setRecurringWeeks] = useState(4);
+    const observationsInputRef = useRef<HTMLTextAreaElement>(null);
     
     useEffect(() => {
         if (isOpen) {
@@ -58,6 +60,9 @@ const AppointmentModal: React.FC<{
                 setObservations(existingPatient.observations || '');
                 setRecurringDays([]);
                 setRecurringWeeks(4);
+                if (existingPatient.observations) {
+                    setTimeout(() => observationsInputRef.current?.focus(), 100);
+                }
             } else {
                 setTime(defaultTime);
                 setPatientName('');
@@ -196,7 +201,7 @@ const AppointmentModal: React.FC<{
 
                  <div>
                     <label className="block text-sm font-medium text-slate-300">Observaciones (Obs)</label>
-                    <textarea value={observations} onChange={e => setObservations(e.target.value)} rows={3} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
+                    <textarea ref={observationsInputRef} value={observations} onChange={e => setObservations(e.target.value)} rows={3} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                 </div>
 
             </div>
@@ -406,8 +411,8 @@ export default function App() {
 
   // Modal States
   const [isAppointmentModalOpen, setAppointmentModalOpen] = useState(false);
-  // FIX: Updated state to hold the extended appointment type which includes patientName.
-  const [editingAppointment, setEditingAppointment] = useState<(Appointment & { patientName: string }) | null>(null);
+  // FIX: Updated state to use the centralized AppointmentWithDetails type.
+  const [editingAppointment, setEditingAppointment] = useState<AppointmentWithDetails | null>(null);
   const [isPatientRegistryOpen, setPatientRegistryOpen] = useState(false);
   const [isAiModalOpen, setAiModalOpen] = useState(false);
   const [defaultAppointmentTime, setDefaultAppointmentTime] = useState('11:00');
@@ -415,15 +420,20 @@ export default function App() {
   const [dateForDeletion, setDateForDeletion] = useState<Date | null>(null);
 
   // Memoized derived state
-  const appointmentsForSelectedDay = useMemo(() => {
+  // FIX: Added an explicit return type to useMemo to prevent TypeScript from incorrectly inferring the type as `unknown[]`.
+  const appointmentsForSelectedDay = useMemo((): AppointmentWithDetails[] => {
     if (!selectedDate) return [];
     const dateStr = selectedDate.toISOString().split('T')[0];
     return appointments
       .filter(app => app.date === dateStr)
-      .map(app => ({
-        ...app,
-        patientName: patients.find(p => p.id === app.patientId)?.name || 'Desconocido'
-      }));
+      .map(app => {
+        const patient = patients.find(p => p.id === app.patientId);
+        return {
+          ...app,
+          patientName: patient?.name || 'Desconocido',
+          observations: patient?.observations
+        };
+      });
   }, [selectedDate, appointments, patients]);
 
   const highlightedPatientDays = useMemo(() => {
@@ -467,9 +477,8 @@ export default function App() {
     }
   }, [selectedPatientId, highlightedPatientDays]);
   
-  // FIX: The `onSelectAppointment` prop expects a function that takes an appointment with a `patientName`.
-  // The original `Appointment` type was causing a type mismatch. This handler is updated to match.
-  const handleSelectAppointment = useCallback((appointment: Appointment & { patientName: string }) => {
+  // FIX: Updated handler to use the centralized AppointmentWithDetails type.
+  const handleSelectAppointment = useCallback((appointment: AppointmentWithDetails) => {
       setSelectedPatientId(appointment.patientId);
       setEditingAppointment(appointment);
       setAppointmentModalOpen(true);
@@ -684,14 +693,13 @@ export default function App() {
     }, [isResizing, handleMouseMove]);
 
   const existingPatientForModal = useMemo((): Patient | null => {
-    // FIX: Introduced a local constant to hold `editingAppointment`. This helps the
-    // TypeScript compiler to correctly narrow the type after the null check,
-    // resolving an error where its properties were inaccessible.
-    const appointment = editingAppointment;
-    if (!appointment) {
+    // FIX: With `editingAppointment` correctly typed, optional chaining now works as intended
+    // to safely access `patientId` without the compiler inferring `unknown`.
+    const patientId = editingAppointment?.patientId;
+    if (!patientId) {
       return null;
     }
-    return patients.find(p => p.id === appointment.patientId) || null;
+    return patients.find(p => p.id === patientId) || null;
   }, [editingAppointment, patients]);
 
   return (

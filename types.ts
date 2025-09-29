@@ -16,3 +16,6 @@ export interface Appointment {
   time: string; // e.g., "09:00"
   session: string; // e.g., "5/10"
 }
+
+// FIX: Centralized AppointmentWithDetails type to resolve type inference issues across components.
+export type AppointmentWithDetails = Appointment & { patientName: string; observations?: string; };
