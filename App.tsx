@@ -38,6 +38,7 @@ const AppointmentModal: React.FC<{
     const [patientId, setPatientId] = useState<string | null>(null);
     const [session, setSession] = useState('1/10');
     const [insurance, setInsurance] = useState('');
+    const [dni, setDni] = useState('');
     const [doctor, setDoctor] = useState('');
     const [treatment, setTreatment] = useState('');
     const [diagnosis, setDiagnosis] = useState('');
@@ -54,6 +55,7 @@ const AppointmentModal: React.FC<{
                 setPatientId(existingPatient.id);
                 setSession(existingAppointment.session);
                 setInsurance(existingPatient.insurance || '');
+                setDni(existingPatient.dni || '');
                 setDoctor(existingPatient.doctor || '');
                 setTreatment(existingPatient.treatment || '');
                 setDiagnosis(existingPatient.diagnosis || '');
@@ -69,6 +71,7 @@ const AppointmentModal: React.FC<{
                 setPatientId(null);
                 setSession('1/10');
                 setInsurance('');
+                setDni('');
                 setDoctor('');
                 setTreatment('');
                 setDiagnosis('');
@@ -85,6 +88,7 @@ const AppointmentModal: React.FC<{
         if (patient) {
             setPatientId(patient.id);
             setInsurance(patient.insurance || '');
+            setDni(patient.dni || '');
             setDoctor(patient.doctor || '');
             setTreatment(patient.treatment || '');
             setDiagnosis(patient.diagnosis || '');
@@ -105,6 +109,7 @@ const AppointmentModal: React.FC<{
         const patientData: Patient = {
             id: patientId || appointmentData.patientId,
             name: patientName,
+            dni: dni.trim(),
             insurance, doctor, treatment, diagnosis, observations,
         };
         onSave(appointmentData, patientData, recurringDays, recurringWeeks);
@@ -183,15 +188,20 @@ const AppointmentModal: React.FC<{
                         <label className="block text-sm font-medium text-slate-300">Obra Social</label>
                         <input type="text" value={insurance} onChange={e => setInsurance(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300">Médico Derivante</label>
-                        <input type="text" value={doctor} onChange={e => setDoctor(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
+                     <div>
+                        <label className="block text-sm font-medium text-slate-300">DNI</label>
+                        <input type="text" value={dni} onChange={e => setDni(e.target.value)} placeholder="N° de Documento" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                     </div>
                 </div>
                 
                 <div>
                     <label className="block text-sm font-medium text-slate-300">Tratamiento</label>
                     <input type="text" value={treatment} onChange={e => setTreatment(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-slate-300">Médico Derivante</label>
+                    <input type="text" value={doctor} onChange={e => setDoctor(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                 </div>
 
                 <div>
@@ -250,6 +260,7 @@ const PatientRegistryModal: React.FC<{isOpen: boolean; onClose: () => void; pati
                     </button>
                     <div className="space-y-4">
                         <h3 className="text-3xl font-bold text-white border-b border-slate-700 pb-2">{selectedPatient.name}</h3>
+                        <PatientDetail label="DNI" value={selectedPatient.dni} />
                         <PatientDetail label="Obra Social" value={selectedPatient.insurance} />
                         <PatientDetail label="Médico Derivante" value={selectedPatient.doctor} />
                         <PatientDetail label="Tratamiento" value={selectedPatient.treatment} />
@@ -606,7 +617,37 @@ export default function App() {
   }, [selectedDate]);
 
   const handleSaveAppointment = (appointmentData: Appointment, patientData: Patient, recurringDays: number[], recurringWeeks: number) => {
-      // Update or create patient
+      const trimmedDni = patientData.dni?.trim();
+
+      // --- UNIFICATION LOGIC (for existing appointments only) ---
+      const originalPatientId = editingAppointment?.patientId;
+      if (originalPatientId && trimmedDni) {
+          const targetPatientByDni = patients.find(p => p.dni === trimmedDni && p.id !== originalPatientId);
+          if (targetPatientByDni) {
+              const sourcePatientName = patients.find(p => p.id === originalPatientId)?.name || 'Desconocido';
+              const confirmationMessage = `Se encontró al paciente "${targetPatientByDni.name}" con el mismo DNI. ¿Desea unificar todos los turnos de "${sourcePatientName}" con este paciente? Se usarán los datos del formulario actual para actualizar el registro.`;
+              
+              if (window.confirm(confirmationMessage)) {
+                  // 1. Update target patient with data from the form
+                  setPatients(prev => 
+                      prev.map(p => 
+                          p.id === targetPatientByDni.id ? { ...patientData, id: targetPatientByDni.id } : p
+                      ).filter(p => p.id !== originalPatientId) // 2. Remove source patient
+                  );
+
+                  // 3. Re-assign all appointments from source patient to target patient
+                  // FIX: Explicitly typing `prev` prevents TypeScript from inferring `app` as `unknown`, resolving the type error on `app.patientId`.
+                  setAppointments((prev: Appointment[]) =>
+                      prev.map(app => 
+                          app.patientId === originalPatientId ? { ...app, patientId: targetPatientByDni.id } : app
+                      )
+                  );
+                  return; // Stop further execution
+              }
+          }
+      }
+
+      // --- REGULAR SAVE LOGIC (if no unification happened) ---
       const patientExists = patients.some(p => p.id === patientData.id);
       if (patientExists) {
           setPatients(prev => prev.map(p => p.id === patientData.id ? patientData : p));
@@ -621,7 +662,7 @@ export default function App() {
           const { patientId, date: startDate, time: startTime, session: startSession } = triggerAppointment;
 
           const sessionMatch = startSession.match(/^(\d+)(.*)$/);
-          if (!sessionMatch) return allAppointments; // Not a valid format, do nothing
+          if (!sessionMatch) return allAppointments;
 
           let currentSessionNumber = parseInt(sessionMatch[1], 10);
           const sessionSuffix = sessionMatch[2] || '';
@@ -650,12 +691,10 @@ export default function App() {
       const appointmentExists = appointments.some(a => a.id === appointmentData.id);
       
       if (appointmentExists) {
-          // Update existing appointment and re-number subsequent sessions
           const updatedAppointments = appointments.map(a => a.id === appointmentData.id ? appointmentData : a);
           const renumberedAppointments = renumberFutureSessions(updatedAppointments, appointmentData);
           setAppointments(renumberedAppointments);
       } else {
-          // Create new appointment(s)
           let newAppointments: Appointment[] = [appointmentData];
           if (recurringDays.length > 0 && selectedDate && recurringWeeks > 0) {
               const appointmentsToCreate: Appointment[] = [];
@@ -678,7 +717,6 @@ export default function App() {
               newAppointments.push(...appointmentsToCreate);
           }
           
-          // Auto-increment session numbers for the new batch
           if (newAppointments.length > 1) {
               const sessionMatch = newAppointments[0].session.match(/^(\d+)(.*)$/);
               if (sessionMatch) {
@@ -733,11 +771,9 @@ export default function App() {
   const handleDeleteSingle = () => {
     if (!dateForDeletion || !selectedPatientId) return;
     const dateString = dateForDeletion.toISOString().split('T')[0];
-    // Fix: Explicitly type the 'prev' parameter to resolve type inference error on 'app.patientId'
-    // FIX: Explicitly typing the `prev` parameter in the `setAppointments` callback ensures
+    // FIX: Explicitly typing `prev` in the `setAppointments` callback ensures
     // TypeScript correctly infers the type of `app` within the filter function. This
-    // resolves an error where `app` was being inferred as `unknown`.
-    // FIX: Explicitly typing `prev` prevents TypeScript from inferring `app` as `unknown`.
+    // resolves an error where `app.patientId` was inaccessible due to `app` being `unknown`.
     setAppointments((prev: Appointment[]) => prev.filter(app => 
       !(app.patientId === selectedPatientId && app.date === dateString)
     ));

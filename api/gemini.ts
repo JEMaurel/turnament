@@ -8,6 +8,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 interface Patient {
   id: string;
   name: string;
+  dni?: string;
   insurance?: string;
   doctor?: string;
   treatment?: string;
@@ -61,6 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           fecha: app.date,
           hora: app.time,
           paciente: patient ? patient.name : 'Desconocido',
+          dni: patient?.dni,
           sesion: app.session,
           tratamiento: patient?.treatment,
           diagnostico: patient?.diagnosis,
