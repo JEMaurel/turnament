@@ -5,6 +5,14 @@ import AppointmentList from './components/AppointmentList';
 import type { Patient, Appointment, AppointmentWithDetails } from './types';
 import { getAiAssistance } from './services/geminiService';
 
+// New types for the Patient Schedule Viewer
+interface DaySchedule {
+  date: Date;
+  times: string[];
+}
+type WeekSchedule = (DaySchedule | null)[];
+
+
 // Modal Components defined within App.tsx to easily access state and handlers
 
 const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode; }> = ({ isOpen, onClose, title, children }) => {
@@ -407,6 +415,68 @@ const RecurringSlotsViewer: React.FC<{
   );
 };
 
+const PatientScheduleViewer: React.FC<{
+  patientName: string;
+  schedule: WeekSchedule[];
+  onClose: () => void;
+}> = ({ patientName, schedule, onClose }) => {
+  const WEEK_DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+  return (
+    <div className="p-4 bg-slate-800 rounded-lg shadow-lg relative h-full flex flex-col">
+       <button 
+        onClick={onClose} 
+        className="absolute top-2 right-2 text-slate-400 hover:text-white z-10 p-1 text-2xl"
+        aria-label="Cerrar vista de horarios del paciente"
+      >
+        &times;
+      </button>
+      <h3 className="text-xl font-bold capitalize text-center mb-2">
+        Horarios de <span className="text-indigo-400">{patientName}</span>
+      </h3>
+
+      <div className="grid grid-cols-7 gap-1 text-center text-sm font-semibold text-slate-400 mb-2 px-2">
+        {WEEK_DAYS.map(day => <div key={day}>{day}</div>)}
+      </div>
+
+      <div className="flex-grow overflow-y-auto no-scrollbar pr-2 space-y-1">
+        {schedule.length > 0 ? (
+            schedule.map((week, weekIndex) => (
+                <div key={weekIndex} className="grid grid-cols-7 gap-1 min-h-[4rem]">
+                    {week.map((day, dayIndex) => {
+                        const isWeekend = dayIndex >= 5;
+                        return (
+                            <div key={dayIndex} className={`p-1 rounded-md transition-colors ${isWeekend ? 'bg-slate-900/50' : 'bg-slate-700/50'}`}>
+                                {day && day.times.length > 0 && (
+                                    <>
+                                        <span className="text-xs font-bold text-slate-500 flex justify-center items-center h-4 w-4 rounded-full bg-slate-800/50 mx-auto mb-1">
+                                            {day.date.getDate()}
+                                        </span>
+                                        <div className="space-y-1 text-center">
+                                            {day.times.map(time => (
+                                                <div key={time} className="bg-indigo-500 text-white text-xs font-bold rounded px-1 py-0.5 whitespace-nowrap">
+                                                    {time}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            ))
+        ) : (
+             <p className="text-center text-slate-400 pt-8">
+                Este paciente no tiene turnos agendados.
+            </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
 const DniConflictBanner: React.FC<{
   conflictCount: number;
   onResolve: () => void;
@@ -494,6 +564,17 @@ const DniConflictModal: React.FC<{
       </div>
     </Modal>
   );
+};
+
+
+// Helper function to get the Monday of a given date
+const getMonday = (d: Date): Date => {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    const monday = new Date(date.setDate(diff));
+    monday.setHours(0, 0, 0, 0); // Normalize to the start of the day
+    return monday;
 };
 
 
@@ -612,7 +693,9 @@ export default function App() {
     const dateStr = selectedDate.toISOString().split('T')[0];
     
     const result: AppointmentWithDetails[] = [];
-    const filteredApps = appointments.filter(app => app.date === dateStr);
+    // FIX: Explicitly typing the `app` parameter as `Appointment` resolves a TypeScript
+    // inference error where it was being treated as `unknown`.
+    const filteredApps = appointments.filter((app: Appointment) => app.date === dateStr);
 
     for (const app of filteredApps) {
       const patient = patients.find(p => p.id === app.patientId);
@@ -646,6 +729,42 @@ export default function App() {
     if (!selectedPatientId) return '';
     return patients.find(p => p.id === selectedPatientId)?.name || 'Desconocido';
   }, [selectedPatientId, patients]);
+
+  const highlightedPatientSchedule = useMemo((): WeekSchedule[] => {
+    if (!selectedPatientId) return [];
+
+    const patientAppointments = appointments
+        .filter(app => app.patientId === selectedPatientId)
+        .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+    
+    if (patientAppointments.length === 0) return [];
+
+    const weeksMap = new Map<string, WeekSchedule>();
+
+    for (const app of patientAppointments) {
+        const appDate = new Date(`${app.date}T12:00:00`);
+        const monday = getMonday(appDate);
+        const mondayString = monday.toISOString().split('T')[0];
+        
+        if (!weeksMap.has(mondayString)) {
+            weeksMap.set(mondayString, Array(7).fill(null));
+        }
+
+        const weekSchedule = weeksMap.get(mondayString)!;
+        const dayIndex = (appDate.getDay() + 6) % 7; // Monday = 0
+
+        if (weekSchedule[dayIndex] === null) {
+            weekSchedule[dayIndex] = { date: appDate, times: [] };
+        }
+        (weekSchedule[dayIndex] as DaySchedule).times.push(app.time);
+    }
+    
+    // Sort weeks by Monday's date and return as an array
+    return Array.from(weeksMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(entry => entry[1]);
+
+  }, [selectedPatientId, appointments]);
 
   const nextMonthDate = useMemo(() => {
     const d = new Date(currentDate);
@@ -1059,7 +1178,8 @@ export default function App() {
   
   const handleUnifyConflict = useCallback((patientToKeep: Patient, patientToRemove: Patient) => {
     // Re-assign all appointments from the removed patient to the kept patient
-    setAppointments(prev =>
+    // FIX: Explicitly typing `prev` prevents TypeScript from inferring `app` as `unknown`.
+    setAppointments((prev: Appointment[]) =>
       prev.map(app =>
         app.patientId === patientToRemove.id ? { ...app, patientId: patientToKeep.id } : app
       )
@@ -1240,15 +1360,21 @@ export default function App() {
                 showNavigation={false}
               />
             </div>
-            {recurringSlotsView && (
-              <div className="flex-grow min-h-0">
+             <div className="flex-grow min-h-0">
+              {selectedPatientId ? (
+                  <PatientScheduleViewer 
+                    patientName={highlightedPatientName}
+                    schedule={highlightedPatientSchedule}
+                    onClose={() => setSelectedPatientId(null)}
+                  />
+              ) : recurringSlotsView ? (
                   <RecurringSlotsViewer 
                     date={recurringSlotsView.date}
                     slots={recurringSlotsView.slots}
                     onClose={() => setRecurringSlotsView(null)}
                   />
-              </div>
-            )}
+              ) : null}
+            </div>
           </div>
         </div>
         
