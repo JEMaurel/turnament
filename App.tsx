@@ -407,6 +407,95 @@ const RecurringSlotsViewer: React.FC<{
   );
 };
 
+const DniConflictBanner: React.FC<{
+  conflictCount: number;
+  onResolve: () => void;
+}> = ({ conflictCount, onResolve }) => {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-amber-500 text-slate-900 p-4 shadow-lg z-40 flex justify-between items-center animate-pulse">
+      <div className="flex items-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+        <span className="font-semibold">
+          Alerta: Se {conflictCount === 1 ? 'ha detectado 1 paciente' : `han detectado ${conflictCount} pares de pacientes`} con el mismo DNI pero nombres distintos.
+        </span>
+      </div>
+      <button
+        onClick={onResolve}
+        className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+      >
+        Revisar y Unificar
+      </button>
+    </div>
+  );
+};
+
+const DniConflictModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  conflict: [Patient, Patient] | null;
+  onUnify: (patientToKeep: Patient, patientToRemove: Patient) => void;
+}> = ({ isOpen, onClose, conflict, onUnify }) => {
+  const [idToKeep, setIdToKeep] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (conflict) {
+      // Pre-select the first patient by default
+      setIdToKeep(conflict[0].id);
+    }
+  }, [conflict]);
+
+  if (!isOpen || !conflict) return null;
+
+  const [patientA, patientB] = conflict;
+
+  const handleUnifyClick = () => {
+    if (!idToKeep) return;
+    const patientToKeep = idToKeep === patientA.id ? patientA : patientB;
+    const patientToRemove = idToKeep === patientA.id ? patientB : patientA;
+    onUnify(patientToKeep, patientToRemove);
+  };
+
+  const PatientCard: React.FC<{ patient: Patient; isSelected: boolean; onSelect: () => void; }> = ({ patient, isSelected, onSelect }) => (
+    <div
+      onClick={onSelect}
+      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${isSelected ? 'border-cyan-500 bg-slate-700' : 'border-slate-600 bg-slate-800 hover:bg-slate-700'}`}
+    >
+      <div className="flex items-center mb-3">
+        <input
+          type="radio"
+          name="patient-conflict"
+          checked={isSelected}
+          onChange={onSelect}
+          className="w-5 h-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500"
+        />
+        <h4 className="text-xl font-bold ml-3">{patient.name}</h4>
+      </div>
+      <div className="space-y-2 text-sm pl-8">
+        <p><span className="font-semibold text-slate-400">Obra Social:</span> {patient.insurance || 'N/A'}</p>
+        <p><span className="font-semibold text-slate-400">Tratamiento:</span> {patient.treatment || 'N/A'}</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Resolver Conflicto de DNI">
+      <div className="space-y-4">
+        <p>Se encontraron dos pacientes con el DNI <span className="font-bold text-cyan-400">{patientA.dni}</span> pero con nombres diferentes. Seleccione el registro que desea conservar. Todos los turnos se asignarán al paciente seleccionado.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <PatientCard patient={patientA} isSelected={idToKeep === patientA.id} onSelect={() => setIdToKeep(patientA.id)} />
+          <PatientCard patient={patientB} isSelected={idToKeep === patientB.id} onSelect={() => setIdToKeep(patientB.id)} />
+        </div>
+      </div>
+      <div className="flex justify-end pt-4 mt-4 border-t border-slate-700">
+        <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors mr-2">Cancelar</button>
+        <button onClick={handleUnifyClick} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Unificar Pacientes</button>
+      </div>
+    </Modal>
+  );
+};
+
 
 export default function App() {
   // State
@@ -475,6 +564,46 @@ export default function App() {
   // New state for recurring slots viewer
   const [recurringSlotsView, setRecurringSlotsView] = useState<{ date: Date; slots: string[] } | null>(null);
 
+  // DNI Conflict State
+  const [dniConflicts, setDniConflicts] = useState<[Patient, Patient][]>([]);
+  const [isDniConflictModalOpen, setDniConflictModalOpen] = useState(false);
+
+  // Effect to detect DNI conflicts
+  useEffect(() => {
+    const findConflicts = () => {
+      const dniMap = new Map<string, Patient[]>();
+      // Group patients by DNI
+      for (const patient of patients) {
+        if (patient.dni && patient.dni.trim()) {
+          const dni = patient.dni.trim();
+          if (!dniMap.has(dni)) {
+            dniMap.set(dni, []);
+          }
+          dniMap.get(dni)!.push(patient);
+        }
+      }
+
+      const conflicts: [Patient, Patient][] = [];
+      // Find groups with more than one patient and different names
+      for (const patientGroup of dniMap.values()) {
+        if (patientGroup.length > 1) {
+          // This handles all pairs within a group of duplicates
+          for (let i = 0; i < patientGroup.length; i++) {
+            for (let j = i + 1; j < patientGroup.length; j++) {
+              const name1 = patientGroup[i].name.toLowerCase().trim().replace(/\s+/g, ' ');
+              const name2 = patientGroup[j].name.toLowerCase().trim().replace(/\s+/g, ' ');
+              if (name1 !== name2) {
+                conflicts.push([patientGroup[i], patientGroup[j]]);
+              }
+            }
+          }
+        }
+      }
+      setDniConflicts(conflicts);
+    };
+    findConflicts();
+  }, [patients]);
+  
   // Memoized derived state
   // FIX: Refactored to use a for...of loop instead of .map() to prevent a subtle TypeScript 
   // inference issue where the returned array elements were being typed as `unknown`.
@@ -636,9 +765,10 @@ export default function App() {
                   );
 
                   // 3. Re-assign all appointments from source patient to target patient
-                  // FIX: Explicitly typing `prev` prevents TypeScript from inferring `app` as `unknown`, resolving the type error on `app.patientId`.
+                  // FIX: Explicitly typing the `app` parameter as `Appointment` resolves a TypeScript
+                  // inference error where it was being treated as `unknown`.
                   setAppointments((prev: Appointment[]) =>
-                      prev.map(app => 
+                      prev.map((app: Appointment) =>
                           app.patientId === originalPatientId ? { ...app, patientId: targetPatientByDni.id } : app
                       )
                   );
@@ -771,10 +901,9 @@ export default function App() {
   const handleDeleteSingle = () => {
     if (!dateForDeletion || !selectedPatientId) return;
     const dateString = dateForDeletion.toISOString().split('T')[0];
-    // FIX: Explicitly typing `prev` in the `setAppointments` callback ensures
-    // TypeScript correctly infers the type of `app` within the filter function. This
-    // resolves an error where `app.patientId` was inaccessible due to `app` being `unknown`.
-    setAppointments((prev: Appointment[]) => prev.filter(app => 
+    // FIX: Explicitly typing the `app` parameter as `Appointment` resolves a TypeScript
+    // inference error where it was being treated as `unknown`.
+    setAppointments((prev: Appointment[]) => prev.filter((app: Appointment) => 
       !(app.patientId === selectedPatientId && app.date === dateString)
     ));
     setDeleteOptionsModalOpen(false);
@@ -927,6 +1056,31 @@ export default function App() {
     setDateForDeletion(null);
     setSelectedPatientId(null);
   };
+  
+  const handleUnifyConflict = useCallback((patientToKeep: Patient, patientToRemove: Patient) => {
+    // Re-assign all appointments from the removed patient to the kept patient
+    setAppointments(prev =>
+      prev.map(app =>
+        app.patientId === patientToRemove.id ? { ...app, patientId: patientToKeep.id } : app
+      )
+    );
+  
+    // Remove the obsolete patient record
+    setPatients(prev => prev.filter(p => p.id !== patientToRemove.id));
+  
+    // After state updates, the useEffect for conflict detection will run again.
+    // If all conflicts are resolved, the modal should close.
+    // We check if the remaining conflicts list will be empty.
+    const remainingConflicts = dniConflicts.filter(
+      pair => pair[0].id !== patientToKeep.id && pair[1].id !== patientToKeep.id &&
+              pair[0].id !== patientToRemove.id && pair[1].id !== patientToRemove.id
+    );
+  
+    if (remainingConflicts.length === 0) {
+      setDniConflictModalOpen(false);
+    }
+  }, [dniConflicts]);
+
 
   const handleOpenScheduleForDay = () => {
     if (!dateForDeletion) return;
@@ -1152,6 +1306,20 @@ export default function App() {
         onDeleteColumn={handleDeleteColumn}
         onExtendWeek={handleExtendWeek}
       />
+      <DniConflictModal
+        isOpen={isDniConflictModalOpen}
+        onClose={() => setDniConflictModalOpen(false)}
+        conflict={dniConflicts[0] || null}
+        onUnify={handleUnifyConflict}
+      />
+
+      {/* Banners */}
+      {dniConflicts.length > 0 && (
+        <DniConflictBanner
+          conflictCount={dniConflicts.length}
+          onResolve={() => setDniConflictModalOpen(true)}
+        />
+      )}
     </div>
   );
 }
