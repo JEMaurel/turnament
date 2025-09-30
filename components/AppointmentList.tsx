@@ -102,11 +102,10 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
     const scheduleEndHour = 18;
 
     const baseSlots: string[] = [];
-    for (let h = scheduleStartHour; h <= scheduleEndHour; h++) {
+    // The loop now stops before 18:00, making 17:30 the last available slot.
+    for (let h = scheduleStartHour; h < scheduleEndHour; h++) {
       baseSlots.push(`${String(h).padStart(2, '0')}:00`);
-      if (h < scheduleEndHour) {
-        baseSlots.push(`${String(h).padStart(2, '0')}:30`);
-      }
+      baseSlots.push(`${String(h).padStart(2, '0')}:30`);
     }
 
     // FIX: Replaced .map() with for...of loops to avoid TypeScript inference issues.

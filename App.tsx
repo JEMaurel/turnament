@@ -382,7 +382,7 @@ const RecurringSlotsViewer: React.FC<{
   slots: string[];
   onClose: () => void;
 }> = ({ date, slots, onClose }) => {
-  const dayName = date.toLocaleDateString('es-ES', { weekday: 'long' });
+  const dayName = date.toLocaleString('es-ES', { weekday: 'long' });
 
   return (
     <div className="p-4 bg-slate-800 rounded-lg shadow-lg relative h-full flex flex-col">
@@ -716,13 +716,15 @@ export default function App() {
     const nextYear = month === 11 ? year + 1 : year;
     
     return appointments
-      .filter(app => {
+      // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
+      .filter((app: Appointment) => {
         const appDate = new Date(`${app.date}T12:00:00`); // Use midday to avoid timezone issues
         return app.patientId === selectedPatientId && 
                ((appDate.getMonth() === month && appDate.getFullYear() === year) || 
                 (appDate.getMonth() === nextMonth && appDate.getFullYear() === nextYear));
       })
-      .map(app => app.date);
+      // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
+      .map((app: Appointment) => app.date);
   }, [selectedPatientId, appointments, currentDate]);
   
   const highlightedPatientName = useMemo(() => {
@@ -734,7 +736,8 @@ export default function App() {
     if (!selectedPatientId) return [];
 
     const patientAppointments = appointments
-        .filter(app => app.patientId === selectedPatientId)
+        // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
+        .filter((app: Appointment) => app.patientId === selectedPatientId)
         .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
     
     if (patientAppointments.length === 0) return [];
@@ -781,15 +784,15 @@ export default function App() {
     const scheduleStartHour = 11;
     const scheduleEndHour = 18;
     const standardSlots: string[] = [];
-    for (let h = scheduleStartHour; h <= scheduleEndHour; h++) {
+    // The loop now stops before 18:00, making 17:30 the last available slot.
+    for (let h = scheduleStartHour; h < scheduleEndHour; h++) {
         standardSlots.push(`${String(h).padStart(2, '0')}:00`);
-        if (h < scheduleEndHour) {
-            standardSlots.push(`${String(h).padStart(2, '0')}:30`);
-        }
+        standardSlots.push(`${String(h).padStart(2, '0')}:30`);
     }
 
     const appointmentsLookup = new Set(
-        appointments.map(app => `${app.date}|${app.time}`)
+        // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
+        appointments.map((app: Appointment) => `${app.date}|${app.time}`)
     );
 
     for (const slot of standardSlots) {
@@ -937,10 +940,12 @@ export default function App() {
           return Array.from(updatedAppointmentsMap.values());
       };
 
-      const appointmentExists = appointments.some(a => a.id === appointmentData.id);
+      // FIX: Explicitly typing `a` prevents TypeScript from inferring it as `unknown`.
+      const appointmentExists = appointments.some((a: Appointment) => a.id === appointmentData.id);
       
       if (appointmentExists) {
-          const updatedAppointments = appointments.map(a => a.id === appointmentData.id ? appointmentData : a);
+          // FIX: Explicitly typing `a` prevents TypeScript from inferring it as `unknown`.
+          const updatedAppointments = appointments.map((a: Appointment) => a.id === appointmentData.id ? appointmentData : a);
           const renumberedAppointments = renumberFutureSessions(updatedAppointments, appointmentData);
           setAppointments(renumberedAppointments);
       } else {
@@ -982,7 +987,8 @@ export default function App() {
               }
           }
 
-          const existingAppointmentsByDateTime = new Map(appointments.map(app => [`${app.date}|${app.time}`, app]));
+          // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
+          const existingAppointmentsByDateTime = new Map(appointments.map((app: Appointment) => [`${app.date}|${app.time}`, app]));
           const conflicts = newAppointments.filter(newApp => existingAppointmentsByDateTime.has(`${newApp.date}|${newApp.time}`));
 
           if (conflicts.length > 0) {
@@ -1001,10 +1007,12 @@ export default function App() {
               }
 
               const conflictKeys = new Set(conflicts.map(c => `${c.date}|${c.time}`));
-              const nonConflictingAppointments = appointments.filter(app => !conflictKeys.has(`${app.date}|${app.time}`));
+              // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
+              const nonConflictingAppointments = appointments.filter((app: Appointment) => !conflictKeys.has(`${app.date}|${app.time}`));
               setAppointments([...nonConflictingAppointments, ...newAppointments]);
           } else {
-              setAppointments(prev => [...prev, ...newAppointments]);
+              // FIX: Explicitly typing `prev` prevents TypeScript from inferring it as `unknown[]`.
+              setAppointments((prev: Appointment[]) => [...prev, ...newAppointments]);
           }
       }
   };
@@ -1110,7 +1118,8 @@ export default function App() {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
-    const appointmentsInWeek = appointments.filter(app => {
+    // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
+    const appointmentsInWeek = appointments.filter((app: Appointment) => {
         if (app.patientId !== selectedPatientId) return false;
         const appDate = new Date(`${app.date}T12:00:00`);
         return appDate >= startOfWeek && appDate <= endOfWeek;
@@ -1133,7 +1142,7 @@ export default function App() {
       return session;
     };
 
-    const newAppointments = appointmentsInWeek.map(app => {
+    const newAppointments = appointmentsInWeek.map((app: Appointment) => {
         const nextWeekDate = new Date(`${app.date}T12:00:00`);
         nextWeekDate.setDate(nextWeekDate.getDate() + 7);
         return {
@@ -1144,7 +1153,8 @@ export default function App() {
         };
     });
 
-    const existingAppointmentsByDateTime = new Map(appointments.map(app => [`${app.date}|${app.time}`, app]));
+    // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
+    const existingAppointmentsByDateTime = new Map(appointments.map((app: Appointment) => [`${app.date}|${app.time}`, app]));
     const conflicts = newAppointments.filter(newApp => existingAppointmentsByDateTime.has(`${newApp.date}|${newApp.time}`));
 
     if (conflicts.length > 0) {
@@ -1165,10 +1175,12 @@ export default function App() {
         }
 
         const conflictKeys = new Set(conflicts.map(c => `${c.date}|${c.time}`));
-        const nonConflictingAppointments = appointments.filter(app => !conflictKeys.has(`${app.date}|${app.time}`));
+        // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
+        const nonConflictingAppointments = appointments.filter((app: Appointment) => !conflictKeys.has(`${app.date}|${app.time}`));
         setAppointments([...nonConflictingAppointments, ...newAppointments]);
     } else {
-        setAppointments(prev => [...prev, ...newAppointments]);
+        // FIX: Explicitly typing `prev` prevents TypeScript from inferring it as `unknown[]`.
+        setAppointments((prev: Appointment[]) => [...prev, ...newAppointments]);
     }
 
     setDeleteOptionsModalOpen(false);
