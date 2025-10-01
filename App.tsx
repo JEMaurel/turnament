@@ -454,7 +454,7 @@ const PatientScheduleViewer: React.FC<{
                                         </span>
                                         <div className="space-y-1 text-center">
                                             {day.times.map(time => (
-                                                <div key={time} className="bg-indigo-500 text-white text-xs font-bold rounded px-1 py-0.5 whitespace-nowrap">
+                                                <div key={time} className="bg-indigo-500 text-white text-sm font-bold rounded px-2 py-0.5 whitespace-nowrap">
                                                     {time}
                                                 </div>
                                             ))}
@@ -651,6 +651,11 @@ export default function App() {
   const [dniConflicts, setDniConflicts] = useState<[Patient, Patient][]>([]);
   const [isDniConflictModalOpen, setDniConflictModalOpen] = useState(false);
 
+  // Patient Search State
+  const [patientSearchTerm, setPatientSearchTerm] = useState('');
+  const patientSearchRef = useRef<HTMLDivElement>(null);
+
+
   // Effect to detect DNI conflicts
   useEffect(() => {
     const findConflicts = () => {
@@ -776,6 +781,16 @@ export default function App() {
     d.setMonth(d.getMonth() + 1, 1);
     return d;
   }, [currentDate]);
+
+  // Patient Search Results
+  const filteredPatientsForSearch = useMemo(() => {
+      if (patientSearchTerm.length < 2) {
+          return [];
+      }
+      return patients
+          .filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()))
+          .slice(0, 5); // Limit results to 5
+  }, [patientSearchTerm, patients]);
 
 
   // Handlers
@@ -1056,8 +1071,8 @@ export default function App() {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
-    // FIX: Explicitly typing `prev` to prevent TypeScript from inferring `app` as `unknown`.
-    setAppointments((prev: Appointment[]) => prev.filter(app => {
+    // FIX: Explicitly typing `prev` and `app` to prevent TypeScript from inferring `app` as `unknown`.
+    setAppointments((prev: Appointment[]) => prev.filter((app: Appointment) => {
       if (app.patientId !== selectedPatientId) {
         return true; // Keep appointments for other patients
       }
@@ -1078,8 +1093,8 @@ export default function App() {
     const targetDateString = targetDate.toISOString().split('T')[0];
     const targetDayOfWeek = targetDate.getDay();
 
-    // FIX: Explicitly typing `prev` to prevent TypeScript from inferring `app` as `unknown`.
-    setAppointments((prev: Appointment[]) => prev.filter(app => {
+    // FIX: Explicitly typing `prev` and `app` to prevent TypeScript from inferring `app` as `unknown`.
+    setAppointments((prev: Appointment[]) => prev.filter((app: Appointment) => {
         // Keep appointments if they don't belong to the selected patient
         if (app.patientId !== selectedPatientId) {
             return true;
@@ -1193,9 +1208,9 @@ export default function App() {
   
   const handleUnifyConflict = useCallback((patientToKeep: Patient, patientToRemove: Patient) => {
     // Re-assign all appointments from the removed patient to the kept patient
-    // FIX: Explicitly typing `prev` prevents TypeScript from inferring `app` as `unknown`.
+    // FIX: Explicitly typing `prev` and `app` to prevent TypeScript from inferring `app` as `unknown`.
     setAppointments((prev: Appointment[]) =>
-      prev.map(app =>
+      prev.map((app: Appointment) =>
         app.patientId === patientToRemove.id ? { ...app, patientId: patientToKeep.id } : app
       )
     );
@@ -1309,6 +1324,25 @@ export default function App() {
             window.removeEventListener('mouseup', handleMouseUp);
         };
     }, [isResizing, handleMouseMove]);
+    
+      // Patient search handlers
+    const handleSelectPatientFromSearch = (patientId: string) => {
+        setSelectedPatientId(patientId);
+        setPatientSearchTerm(''); // Clear search and hide dropdown
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (patientSearchRef.current && !patientSearchRef.current.contains(event.target as Node)) {
+                setPatientSearchTerm('');
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
 
   // Fix: Restructuring the logic to safely access `patientId` by first checking if `editingAppointment` exists. This helps TypeScript's type narrowing and prevents errors on potentially null objects.
   const existingPatientForModal = useMemo((): Patient | null => {
@@ -1316,8 +1350,10 @@ export default function App() {
     // checking if editingAppointment exists before accessing its properties, we guide
     // TypeScript's type narrowing and resolve the inference error on `patientId`.
     if (editingAppointment) {
-      // FIX: Add explicit type assertion to resolve a TypeScript inference issue where `editingAppointment` was being treated as `unknown` despite the type guard.
-      const patient = patients.find(p => p.id === (editingAppointment as AppointmentWithDetails).patientId);
+      // FIX: Extracted `patientId` to a const to help TypeScript's type inference within the
+      // `.find()` callback, resolving an issue where `editingAppointment` was treated as `unknown`.
+      const patientId = editingAppointment.patientId;
+      const patient = patients.find(p => p.id === patientId);
       return patient || null;
     }
     return null;
@@ -1328,18 +1364,48 @@ export default function App() {
       <header className="flex flex-wrap justify-between items-center mb-6 gap-4 flex-shrink-0">
         <h1 className="text-3xl font-bold text-cyan-400">Consultorio Virtual</h1>
         <div className="flex items-center flex-wrap gap-3">
-            <div className="flex items-center gap-3 border-r border-slate-700 pr-3">
+            <div ref={patientSearchRef} className="relative w-64">
+                 <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                    </svg>
+                </span>
+                <input
+                    type="text"
+                    placeholder="Buscar y ubicar paciente..."
+                    value={patientSearchTerm}
+                    onChange={e => setPatientSearchTerm(e.target.value)}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 pl-10 pr-4 focus:ring-cyan-500 focus:border-cyan-500"
+                />
+                {filteredPatientsForSearch.length > 0 && (
+                    <ul className="absolute z-20 w-full mt-1 bg-slate-800 border border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                        {filteredPatientsForSearch.map(patient => (
+                            <li
+                                key={patient.id}
+                                onClick={() => handleSelectPatientFromSearch(patient.id)}
+                                className="px-4 py-2 text-white cursor-pointer hover:bg-slate-600"
+                                role="button"
+                                tabIndex={0}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSelectPatientFromSearch(patient.id)}
+                            >
+                                {patient.name}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+            <div className="flex items-center gap-3 border-l border-slate-700 pl-3">
                 <button onClick={handleExportData} title="Exportar Pacientes y Turnos a JSON" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                    <span>Exportar</span>
+                    <span className="hidden sm:inline">Exportar</span>
                 </button>
                  <button onClick={() => handleImportData('patients')} title="Importar Pacientes desde JSON" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
-                    <span>Imp. Pacientes</span>
+                    <span className="hidden sm:inline">Imp. Pacientes</span>
                 </button>
                  <button onClick={() => handleImportData('appointments')} title="Importar Turnos desde JSON" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
-                    <span>Imp. Turnos</span>
+                    <span className="hidden sm:inline">Imp. Turnos</span>
                 </button>
             </div>
             <button onClick={() => setPatientRegistryOpen(true)} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
