@@ -359,7 +359,8 @@ const DeleteAppointmentOptionsModal: React.FC<{
   onChangeSchedule: () => void;
   onDeleteColumn: () => void;
   onExtendWeek: () => void;
-}> = ({ isOpen, onClose, patientName, onDeleteSingle, onDeleteWeek, onChangeSchedule, onDeleteColumn, onExtendWeek }) => {
+  onExtendColumn: () => void;
+}> = ({ isOpen, onClose, patientName, onDeleteSingle, onDeleteWeek, onChangeSchedule, onDeleteColumn, onExtendWeek, onExtendColumn }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Modificar Turno">
       <div className="space-y-4">
@@ -368,6 +369,7 @@ const DeleteAppointmentOptionsModal: React.FC<{
       <div className="flex flex-wrap justify-end gap-3 pt-4 mt-4 border-t border-slate-700">
         <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cancelar</button>
         <button onClick={onExtendWeek} className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Extender Semana</button>
+        <button onClick={onExtendColumn} className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Extender Columna</button>
         <button onClick={onChangeSchedule} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cambiar Horario</button>
         <button onClick={onDeleteSingle} className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar este turno</button>
         <button onClick={onDeleteWeek} className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar turnos de la semana</button>
@@ -906,18 +908,14 @@ export default function App() {
               );
 
               // 3. Re-assign all appointments from source patient to target patient
-              // FIX: Replaced .map() with a for...of loop to resolve a TypeScript inference issue where `app.patientId` was inaccessible.
-              setAppointments((prev: Appointment[]) => {
-                const newAppointments: Appointment[] = [];
-                for (const app of prev) {
-                  if (app.patientId === originalPatientId) {
-                    newAppointments.push({ ...app, patientId: targetPatientByDni.id });
-                  } else {
-                    newAppointments.push(app);
-                  }
-                }
-                return newAppointments;
-              });
+              // FIX: Replaced imperative loop with a functional .map() to ensure type safety and immutability when updating state.
+              setAppointments((prev: Appointment[]) =>
+                prev.map((app: Appointment) =>
+                  app.patientId === originalPatientId
+                    ? { ...app, patientId: targetPatientByDni.id }
+                    : app,
+                ),
+              );
               return; // Stop further execution
             }
           }
@@ -1216,20 +1214,111 @@ export default function App() {
     setSelectedPatientId(null);
   }, [dateForDeletion, selectedPatientId, appointments, patients]);
   
+  const handleExtendColumn = useCallback(() => {
+    if (!dateForDeletion || !selectedPatientId) return;
+
+    const dateString = dateForDeletion.toISOString().split('T')[0];
+
+    // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
+    const appointmentsOnDay = appointments.filter((app: Appointment) => {
+        return app.patientId === selectedPatientId && app.date === dateString;
+    });
+
+    if (appointmentsOnDay.length === 0) {
+        alert("No se encontraron turnos para este paciente en el día seleccionado para extender.");
+        setDeleteOptionsModalOpen(false);
+        setDateForDeletion(null);
+        return;
+    }
+    
+    appointmentsOnDay.sort((a,b) => a.time.localeCompare(b.time));
+
+    const latestAppointment = appointments
+        .filter(a => a.patientId === selectedPatientId)
+        .sort((a,b) => {
+            if (a.date !== b.date) return b.date.localeCompare(a.date);
+            return b.time.localeCompare(a.time);
+        })[0];
+    
+    let baseSessionNumber = 0;
+    let sessionSuffix = '';
+    
+    // Determine the starting session number from the latest appointment of the patient
+    if (latestAppointment) {
+        const match = latestAppointment.session.match(/^(\d+)(.*)$/);
+        if (match) {
+            baseSessionNumber = parseInt(match[1], 10);
+            sessionSuffix = match[2] || '';
+        }
+    } else {
+        // This is a fallback, but we should always have a latest appointment if we are extending one.
+        const match = appointmentsOnDay[0].session.match(/^(\d+)(.*)$/);
+        if (match) {
+            baseSessionNumber = parseInt(match[1], 10);
+            sessionSuffix = match[2] || '';
+        }
+    }
+
+    const newAppointments = appointmentsOnDay.map((app: Appointment, index) => {
+        const nextWeekDate = new Date(`${app.date}T12:00:00`);
+        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+        
+        const newSessionNumber = baseSessionNumber + 1 + index;
+        
+        return {
+            ...app,
+            id: `app-${Date.now()}-${nextWeekDate.toISOString()}-${index}`,
+            date: nextWeekDate.toISOString().split('T')[0],
+            session: `${newSessionNumber}${sessionSuffix}`,
+        };
+    });
+
+    // Conflict check and state update logic (reused from handleExtendWeek)
+    // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
+    const existingAppointmentsByDateTime = new Map(appointments.map((app: Appointment) => [`${app.date}|${app.time}`, app]));
+    const conflicts = newAppointments.filter(newApp => existingAppointmentsByDateTime.has(`${newApp.date}|${newApp.time}`));
+
+    if (conflicts.length > 0) {
+        const conflictDetailsList: string[] = [];
+        for (const c of conflicts) {
+            const existing = existingAppointmentsByDateTime.get(`${c.date}|${c.time}`);
+            if (existing) {
+                const patientName = patients.find(p => p.id === existing.patientId)?.name || 'Desconocido';
+                conflictDetailsList.push(`- ${new Date(c.date + 'T12:00:00').toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit'})} a las ${c.time} con ${patientName}`);
+            }
+        }
+        const conflictDetails = conflictDetailsList.join('\n');
+
+        if (!window.confirm(`Atención: Los siguientes turnos se sobrescribirán:\n${conflictDetails}\n\n¿Desea continuar?`)) {
+            setDeleteOptionsModalOpen(false);
+            setDateForDeletion(null);
+            return;
+        }
+
+        const conflictKeys = new Set(conflicts.map(c => `${c.date}|${c.time}`));
+        // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
+        const nonConflictingAppointments = appointments.filter((app: Appointment) => !conflictKeys.has(`${app.date}|${app.time}`));
+        setAppointments([...nonConflictingAppointments, ...newAppointments]);
+    } else {
+        // FIX: Explicitly typing `prev` prevents TypeScript from inferring it as `unknown[]`.
+        setAppointments((prev: Appointment[]) => [...prev, ...newAppointments]);
+    }
+
+    setDeleteOptionsModalOpen(false);
+    setDateForDeletion(null);
+    setSelectedPatientId(null); // Clear highlight for better UX feedback
+  }, [dateForDeletion, selectedPatientId, appointments, patients]);
+
   const handleUnifyConflict = useCallback((patientToKeep: Patient, patientToRemove: Patient) => {
     // Re-assign all appointments from the removed patient to the kept patient
-    // FIX: Replaced .map() with a for...of loop to resolve a TypeScript inference issue where `app.patientId` was inaccessible.
-    setAppointments((prev: Appointment[]) => {
-      const newAppointments: Appointment[] = [];
-      for (const app of prev) {
-        if (app.patientId === patientToRemove.id) {
-          newAppointments.push({ ...app, patientId: patientToKeep.id });
-        } else {
-          newAppointments.push(app);
-        }
-      }
-      return newAppointments;
-    });
+    // FIX: Replaced imperative loop with a functional .map() to ensure type safety and immutability when updating state.
+    setAppointments((prev: Appointment[]) =>
+      prev.map((app: Appointment) =>
+        app.patientId === patientToRemove.id
+          ? { ...app, patientId: patientToKeep.id }
+          : app,
+      ),
+    );
   
     // Remove the obsolete patient record
     setPatients(prev => prev.filter(p => p.id !== patientToRemove.id));
@@ -1369,7 +1458,8 @@ export default function App() {
       // FIX: Extracted `patientId` to a const to help TypeScript's type inference within the
       // `.find()` callback, resolving an issue where `editingAppointment` was treated as `unknown`.
       const patientId = editingAppointment.patientId;
-      const patient = patients.find(p => p.id === patientId);
+      // FIX: Explicitly typing `p` as `Patient` resolves the TypeScript inference error where `p.id` was inaccessible.
+      const patient = patients.find((p: Patient) => p.id === patientId);
       return patient || null;
     }
     return null;
@@ -1529,6 +1619,7 @@ export default function App() {
         onChangeSchedule={handleOpenScheduleForDay}
         onDeleteColumn={handleDeleteColumn}
         onExtendWeek={handleExtendWeek}
+        onExtendColumn={handleExtendColumn}
       />
       <DniConflictModal
         isOpen={isDniConflictModalOpen}
