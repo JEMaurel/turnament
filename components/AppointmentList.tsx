@@ -24,8 +24,8 @@ const AppointmentRow: React.FC<{
     >
       <div className="font-mono text-lg text-cyan-400">{appointment.time}</div>
       <div className="font-semibold text-white truncate">{appointment.patientName}</div>
-      <div className="flex items-center gap-2 text-slate-400">
-        <span>{appointment.session}</span>
+      <div className="flex items-center gap-3 text-slate-400">
+        <span className="text-base font-mono">{appointment.session}</span>
         {appointment.observations && (
             <button
                 onClick={(e) => {
@@ -36,7 +36,7 @@ const AppointmentRow: React.FC<{
                 aria-label={`Ver observación activa para ${appointment.patientName}`}
                 title="Observación activa. Click para ver o editar."
             >
-                <div className="w-2.5 h-2.5 bg-amber-600 rounded-full"></div>
+                <div className="w-4 h-4 bg-amber-600 rounded-full"></div>
             </button>
         )}
         <button
@@ -48,7 +48,7 @@ const AppointmentRow: React.FC<{
             aria-label={`Resaltar turnos de ${appointment.patientName}`}
             title={`Resaltar todos los turnos de ${appointment.patientName} en el calendario`}
         >
-            <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full"></div>
+            <div className="w-4 h-4 bg-indigo-400 rounded-full"></div>
         </button>
       </div>
       <div className="flex justify-end items-center gap-2">
@@ -57,14 +57,14 @@ const AppointmentRow: React.FC<{
           className="p-2 rounded-full hover:bg-slate-600 transition-colors"
           aria-label="Editar Turno"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
         </button>
         <button 
           onClick={(e) => { e.stopPropagation(); onDeleteAppointment(appointment.id); }} 
           className="p-2 text-red-400 rounded-full hover:bg-red-900/50 transition-colors"
           aria-label="Eliminar Turno"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>
         </button>
       </div>
     </div>

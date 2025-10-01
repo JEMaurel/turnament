@@ -588,7 +588,8 @@ export default function App() {
     try {
       const saved = window.localStorage.getItem('consultorio-patients');
       // Load saved data or default to an empty array.
-      return saved ? JSON.parse(saved) : [];
+      // FIX: Cast the result from JSON.parse to ensure the state is correctly typed as Patient[] and not any[] or unknown[].
+      return saved ? JSON.parse(saved) as Patient[] : [];
     } catch (error) {
       console.error("Error loading patients from localStorage:", error);
       // If there's an error, start with an empty list to prevent app crash.
@@ -600,7 +601,8 @@ export default function App() {
     try {
       const saved = window.localStorage.getItem('consultorio-appointments');
       // Load saved data or default to an empty array.
-      return saved ? JSON.parse(saved) : [];
+      // FIX: Cast the result from JSON.parse to ensure the state is correctly typed as Appointment[] and not any[] or unknown[].
+      return saved ? JSON.parse(saved) as Appointment[] : [];
     } catch (error) {
       console.error("Error loading appointments from localStorage:", error);
       // If there's an error, start with an empty list to prevent app crash.
@@ -871,7 +873,8 @@ export default function App() {
       const trimmedDni = patientData.dni?.trim();
 
       // --- UNIFICATION LOGIC (for existing appointments only) ---
-      const originalPatientId = editingAppointment?.patientId;
+      // FIX: Explicitly cast `editingAppointment` to resolve a TypeScript inference issue where its type was being lost.
+      const originalPatientId = (editingAppointment as AppointmentWithDetails | null)?.patientId;
       if (originalPatientId && trimmedDni) {
           const targetPatientByDni = patients.find(p => p.dni === trimmedDni && p.id !== originalPatientId);
           if (targetPatientByDni) {
@@ -1313,7 +1316,8 @@ export default function App() {
     // checking if editingAppointment exists before accessing its properties, we guide
     // TypeScript's type narrowing and resolve the inference error on `patientId`.
     if (editingAppointment) {
-      const patient = patients.find(p => p.id === editingAppointment.patientId);
+      // FIX: Add explicit type assertion to resolve a TypeScript inference issue where `editingAppointment` was being treated as `unknown` despite the type guard.
+      const patient = patients.find(p => p.id === (editingAppointment as AppointmentWithDetails).patientId);
       return patient || null;
     }
     return null;
