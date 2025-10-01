@@ -52,7 +52,7 @@ const AppointmentModal: React.FC<{
     const [diagnosis, setDiagnosis] = useState('');
     const [observations, setObservations] = useState('');
     const [recurringDays, setRecurringDays] = useState<number[]>([]);
-    const [recurringWeeks, setRecurringWeeks] = useState(4);
+    const [recurringWeeks, setRecurringWeeks] = useState(0);
     const observationsInputRef = useRef<HTMLTextAreaElement>(null);
     
     useEffect(() => {
@@ -69,7 +69,7 @@ const AppointmentModal: React.FC<{
                 setDiagnosis(existingPatient.diagnosis || '');
                 setObservations(existingPatient.observations || '');
                 setRecurringDays([]);
-                setRecurringWeeks(4);
+                setRecurringWeeks(0);
                 if (existingPatient.observations) {
                     setTimeout(() => observationsInputRef.current?.focus(), 100);
                 }
@@ -85,7 +85,7 @@ const AppointmentModal: React.FC<{
                 setDiagnosis('');
                 setObservations('');
                 setRecurringDays([]);
-                setRecurringWeeks(4);
+                setRecurringWeeks(0);
             }
         }
     }, [existingAppointment, existingPatient, isOpen, defaultTime]);
@@ -166,16 +166,16 @@ const AppointmentModal: React.FC<{
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-2">Durante:</label>
+                                <label className="block text-xs font-medium text-slate-400 mb-2">Repetir por:</label>
                                 <div className="flex items-center gap-2">
                                     <input 
                                         type="number" 
-                                        min="1" 
+                                        min="0" 
                                         value={recurringWeeks} 
-                                        onChange={e => setRecurringWeeks(Math.max(1, Number(e.target.value)))} 
+                                        onChange={e => setRecurringWeeks(Math.max(0, Number(e.target.value)))} 
                                         className="w-20 bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"
                                     />
-                                    <span className="text-slate-300">semanas</span>
+                                    <span className="text-slate-300">{recurringWeeks === 1 ? 'semana' : 'semanas'}</span>
                                 </div>
                             </div>
                         </div>
@@ -906,11 +906,18 @@ export default function App() {
               );
 
               // 3. Re-assign all appointments from source patient to target patient
-              setAppointments((prev: Appointment[]) =>
-                prev.map((app: Appointment) =>
-                  app.patientId === originalPatientId ? { ...app, patientId: targetPatientByDni.id } : app
-                )
-              );
+              // FIX: Replaced .map() with a for...of loop to resolve a TypeScript inference issue where `app.patientId` was inaccessible.
+              setAppointments((prev: Appointment[]) => {
+                const newAppointments: Appointment[] = [];
+                for (const app of prev) {
+                  if (app.patientId === originalPatientId) {
+                    newAppointments.push({ ...app, patientId: targetPatientByDni.id });
+                  } else {
+                    newAppointments.push(app);
+                  }
+                }
+                return newAppointments;
+              });
               return; // Stop further execution
             }
           }
@@ -968,15 +975,17 @@ export default function App() {
           setAppointments(renumberedAppointments);
       } else {
           let newAppointments: Appointment[] = [appointmentData];
-          if (recurringDays.length > 0 && selectedDate && recurringWeeks > 0) {
+           if (recurringDays.length > 0 && selectedDate && recurringWeeks >= 0) {
               const appointmentsToCreate: Appointment[] = [];
-              const endDate = new Date(selectedDate);
-              endDate.setDate(selectedDate.getDate() + (recurringWeeks * 7));
+              
+              const startWeekMonday = getMonday(selectedDate);
+              const endDate = new Date(startWeekMonday);
+              endDate.setDate(endDate.getDate() + (recurringWeeks * 7) + 6);
               
               let currentDatePointer = new Date(selectedDate);
               currentDatePointer.setDate(currentDatePointer.getDate() + 1);
 
-              while(currentDatePointer < endDate) {
+              while(currentDatePointer <= endDate) {
                   if (recurringDays.includes(currentDatePointer.getDay())) {
                       appointmentsToCreate.push({
                           ...appointmentData,
@@ -1209,12 +1218,18 @@ export default function App() {
   
   const handleUnifyConflict = useCallback((patientToKeep: Patient, patientToRemove: Patient) => {
     // Re-assign all appointments from the removed patient to the kept patient
-    // FIX: Explicitly typing `prev` and `app` to prevent TypeScript from inferring `app` as `unknown`.
-    setAppointments((prev: Appointment[]) =>
-      prev.map((app: Appointment) =>
-        app.patientId === patientToRemove.id ? { ...app, patientId: patientToKeep.id } : app
-      )
-    );
+    // FIX: Replaced .map() with a for...of loop to resolve a TypeScript inference issue where `app.patientId` was inaccessible.
+    setAppointments((prev: Appointment[]) => {
+      const newAppointments: Appointment[] = [];
+      for (const app of prev) {
+        if (app.patientId === patientToRemove.id) {
+          newAppointments.push({ ...app, patientId: patientToKeep.id });
+        } else {
+          newAppointments.push(app);
+        }
+      }
+      return newAppointments;
+    });
   
     // Remove the obsolete patient record
     setPatients(prev => prev.filter(p => p.id !== patientToRemove.id));
