@@ -454,7 +454,7 @@ const PatientScheduleViewer: React.FC<{
                                         </span>
                                         <div className="space-y-1 text-center">
                                             {day.times.map(time => (
-                                                <div key={time} className="bg-indigo-500 text-white text-sm font-bold rounded px-2 py-0.5 whitespace-nowrap">
+                                                <div key={time} className="bg-indigo-500 text-white text-base font-bold rounded px-2 py-1 whitespace-nowrap">
                                                     {time}
                                                 </div>
                                             ))}
@@ -788,7 +788,7 @@ export default function App() {
           return [];
       }
       return patients
-          .filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()))
+          .filter(p => p && p.name && p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()))
           .slice(0, 5); // Limit results to 5
   }, [patientSearchTerm, patients]);
 
@@ -888,33 +888,33 @@ export default function App() {
       const trimmedDni = patientData.dni?.trim();
 
       // --- UNIFICATION LOGIC (for existing appointments only) ---
-      // FIX: Explicitly cast `editingAppointment` to resolve a TypeScript inference issue where its type was being lost.
-      const originalPatientId = (editingAppointment as AppointmentWithDetails | null)?.patientId;
-      if (originalPatientId && trimmedDni) {
+      // FIX: Added a guard to ensure `editingAppointment` is not null and help TypeScript infer its type correctly.
+      if (editingAppointment) {
+        const originalPatientId = editingAppointment.patientId;
+        if (originalPatientId && trimmedDni) {
           const targetPatientByDni = patients.find(p => p.dni === trimmedDni && p.id !== originalPatientId);
           if (targetPatientByDni) {
-              const sourcePatientName = patients.find(p => p.id === originalPatientId)?.name || 'Desconocido';
-              const confirmationMessage = `Se encontró al paciente "${targetPatientByDni.name}" con el mismo DNI. ¿Desea unificar todos los turnos de "${sourcePatientName}" con este paciente? Se usarán los datos del formulario actual para actualizar el registro.`;
-              
-              if (window.confirm(confirmationMessage)) {
-                  // 1. Update target patient with data from the form
-                  setPatients(prev => 
-                      prev.map(p => 
-                          p.id === targetPatientByDni.id ? { ...patientData, id: targetPatientByDni.id } : p
-                      ).filter(p => p.id !== originalPatientId) // 2. Remove source patient
-                  );
+            const sourcePatientName = patients.find(p => p.id === originalPatientId)?.name || 'Desconocido';
+            const confirmationMessage = `Se encontró al paciente "${targetPatientByDni.name}" con el mismo DNI. ¿Desea unificar todos los turnos de "${sourcePatientName}" con este paciente? Se usarán los datos del formulario actual para actualizar el registro.`;
 
-                  // 3. Re-assign all appointments from source patient to target patient
-                  // FIX: Explicitly typing the `app` parameter as `Appointment` resolves a TypeScript
-                  // inference error where it was being treated as `unknown`.
-                  setAppointments((prev: Appointment[]) =>
-                      prev.map((app: Appointment) =>
-                          app.patientId === originalPatientId ? { ...app, patientId: targetPatientByDni.id } : app
-                      )
-                  );
-                  return; // Stop further execution
-              }
+            if (window.confirm(confirmationMessage)) {
+              // 1. Update target patient with data from the form
+              setPatients(prev =>
+                prev.map(p =>
+                  p.id === targetPatientByDni.id ? { ...patientData, id: targetPatientByDni.id } : p
+                ).filter(p => p.id !== originalPatientId) // 2. Remove source patient
+              );
+
+              // 3. Re-assign all appointments from source patient to target patient
+              setAppointments((prev: Appointment[]) =>
+                prev.map((app: Appointment) =>
+                  app.patientId === originalPatientId ? { ...app, patientId: targetPatientByDni.id } : app
+                )
+              );
+              return; // Stop further execution
+            }
           }
+        }
       }
 
       // --- REGULAR SAVE LOGIC (if no unification happened) ---
@@ -1121,7 +1121,8 @@ export default function App() {
     setSelectedPatientId(null); // Clear highlight for better UX feedback
   };
 
-  const handleExtendWeek = () => {
+  // FIX: Wrapped handler in useCallback to stabilize its reference, which can help prevent subtle type inference issues in child components.
+  const handleExtendWeek = useCallback(() => {
     if (!dateForDeletion || !selectedPatientId) return;
 
     const targetDate = new Date(dateForDeletion);
@@ -1204,7 +1205,7 @@ export default function App() {
     setDeleteOptionsModalOpen(false);
     setDateForDeletion(null);
     setSelectedPatientId(null);
-  };
+  }, [dateForDeletion, selectedPatientId, appointments, patients]);
   
   const handleUnifyConflict = useCallback((patientToKeep: Patient, patientToRemove: Patient) => {
     // Re-assign all appointments from the removed patient to the kept patient
