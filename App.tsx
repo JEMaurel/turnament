@@ -990,30 +990,35 @@ export default function App() {
           const renumberedAppointments = renumberFutureSessions(updatedAppointments, appointmentData);
           updateState({ patients: currentPatients, appointments: renumberedAppointments });
       } else {
-          let newAppointments: Appointment[] = [appointmentData];
-           if (recurringDays.length > 0 && selectedDate && recurringWeeks >= 0) {
-              const appointmentsToCreate: Appointment[] = [];
-              
+          let newAppointments: Appointment[] = [];
+          
+          if (recurringDays.length > 0 && selectedDate && recurringWeeks >= 0) {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
               const startWeekMonday = getMonday(selectedDate);
-              const endDate = new Date(startWeekMonday);
-              endDate.setDate(endDate.getDate() + (recurringWeeks * 7) + 6);
-              
-              let currentDatePointer = new Date(selectedDate);
-              currentDatePointer.setDate(currentDatePointer.getDate() + 1);
+              const totalDaysToScan = (recurringWeeks + 1) * 7;
 
-              while(currentDatePointer <= endDate) {
-                  if (recurringDays.includes(currentDatePointer.getDay())) {
-                      appointmentsToCreate.push({
+              for (let i = 0; i < totalDaysToScan; i++) {
+                  const potentialDate = new Date(startWeekMonday);
+                  potentialDate.setDate(startWeekMonday.getDate() + i);
+
+                  if (recurringDays.includes(potentialDate.getDay()) && potentialDate >= today) {
+                      newAppointments.push({
                           ...appointmentData,
-                          id: `app-${Date.now()}-${currentDatePointer.toISOString()}`,
-                          date: currentDatePointer.toISOString().split('T')[0]
+                          id: `app-${Date.now()}-${potentialDate.toISOString()}-${i}`,
+                          date: potentialDate.toISOString().split('T')[0],
                       });
                   }
-                  currentDatePointer.setDate(currentDatePointer.getDate() + 1);
               }
-              newAppointments.push(...appointmentsToCreate);
+          } else {
+              const appointmentDate = new Date(`${appointmentData.date}T12:00:00`);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              if (appointmentDate >= today) {
+                  newAppointments.push(appointmentData);
+              }
           }
-          
+
           if (newAppointments.length > 1) {
               const sessionMatch = newAppointments[0].session.match(/^(\d+)(.*)$/);
               if (sessionMatch) {
@@ -1063,7 +1068,8 @@ export default function App() {
 
   const handleDeleteAppointment = useCallback((appointmentId: string) => {
     if (window.confirm("¿Estás seguro de que quieres eliminar este turno?")) {
-      const newAppointments = appointments.filter(a => a.id !== appointmentId);
+      // FIX: Explicitly typing `a` prevents TypeScript from inferring it as `unknown`.
+      const newAppointments = appointments.filter((a: Appointment) => a.id !== appointmentId);
       updateState({ patients, appointments: newAppointments });
     }
   }, [patients, appointments, updateState]);
@@ -1071,6 +1077,7 @@ export default function App() {
   const handleDeleteSingle = () => {
     if (!dateForDeletion || !selectedPatientId) return;
     const dateString = dateForDeletion.toISOString().split('T')[0];
+    // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
     const newAppointments = appointments.filter((app: Appointment) => 
       !(app.patientId === selectedPatientId && app.date === dateString)
     );
@@ -1095,6 +1102,7 @@ export default function App() {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
+    // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
     const newAppointments = appointments.filter((app: Appointment) => {
       if (app.patientId !== selectedPatientId) {
         return true; // Keep appointments for other patients
@@ -1117,6 +1125,7 @@ export default function App() {
     const targetDateString = targetDate.toISOString().split('T')[0];
     const targetDayOfWeek = targetDate.getDay();
 
+    // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
     const newAppointments = appointments.filter((app: Appointment) => {
         if (app.patientId !== selectedPatientId) {
             return true;
@@ -1201,25 +1210,49 @@ export default function App() {
         return;
     }
 
-    const incrementSession = (session: string): string => {
-      const match = session.match(/^(\d+)(\s*\/.*)?$/);
+    const latestAppointment = appointments
+      .filter((a: Appointment) => a.patientId === selectedPatientId)
+      .sort((a: Appointment, b: Appointment) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        return b.time.localeCompare(a.time);
+      })[0];
+      
+    let baseSessionNumber = 0;
+    let sessionSuffix = '';
+    
+    if (latestAppointment) {
+      const match = latestAppointment.session.match(/^(\d+)(.*)$/);
       if (match) {
-        const num = parseInt(match[1], 10);
-        const rest = match[2] || '';
-        return `${num + 1}${rest}`;
+        baseSessionNumber = parseInt(match[1], 10);
+        sessionSuffix = match[2] || '';
       }
-      return session;
-    };
+    } else if (appointmentsInWeek.length > 0) {
+      const match = appointmentsInWeek[0].session.match(/^(\d+)(.*)$/);
+      if (match) {
+        baseSessionNumber = parseInt(match[1], 10) - appointmentsInWeek.length;
+        sessionSuffix = match[2] || '';
+      }
+    }
+    
+    const appointmentsToCreate = appointmentsInWeek
+        .map((app: Appointment) => {
+            const nextWeekDate = new Date(`${app.date}T12:00:00`);
+            nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+            return {
+                ...app,
+                id: `app-${Date.now()}-${nextWeekDate.toISOString()}-${Math.random()}`,
+                date: nextWeekDate.toISOString().split('T')[0],
+            };
+        })
+        .sort((a, b) => {
+            if (a.date !== b.date) return a.date.localeCompare(b.date);
+            return a.time.localeCompare(b.time);
+        });
 
-    const newAppointmentsToAdd = appointmentsInWeek.map((app: Appointment) => {
-        const nextWeekDate = new Date(`${app.date}T12:00:00`);
-        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-        return {
-            ...app,
-            id: `app-${Date.now()}-${nextWeekDate.toISOString()}`,
-            date: nextWeekDate.toISOString().split('T')[0],
-            session: incrementSession(app.session),
-        };
+    let sessionCounter = baseSessionNumber;
+    const newAppointmentsToAdd = appointmentsToCreate.map(app => {
+      sessionCounter++;
+      return { ...app, session: `${sessionCounter}${sessionSuffix}` };
     });
 
     const existingAppointmentsByDateTime = new Map(appointments.map((app: Appointment) => [`${app.date}|${app.time}`, app]));
