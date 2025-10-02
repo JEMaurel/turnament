@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
@@ -52,7 +53,7 @@ const AppointmentModal: React.FC<{
     const [diagnosis, setDiagnosis] = useState('');
     const [observations, setObservations] = useState('');
     const [recurringDays, setRecurringDays] = useState<number[]>([]);
-    const [recurringWeeks, setRecurringWeeks] = useState(0);
+    const [recurringWeeks, setRecurringWeeks] = useState(5);
     const observationsInputRef = useRef<HTMLTextAreaElement>(null);
     
     useEffect(() => {
@@ -85,7 +86,7 @@ const AppointmentModal: React.FC<{
                 setDiagnosis('');
                 setObservations('');
                 setRecurringDays([]);
-                setRecurringWeeks(0);
+                setRecurringWeeks(5);
             }
         }
     }, [existingAppointment, existingPatient, isOpen, defaultTime]);
@@ -360,7 +361,8 @@ const DeleteAppointmentOptionsModal: React.FC<{
   onDeleteColumn: () => void;
   onExtendWeek: () => void;
   onExtendColumn: () => void;
-}> = ({ isOpen, onClose, patientName, onDeleteSingle, onDeleteWeek, onChangeSchedule, onDeleteColumn, onExtendWeek, onExtendColumn }) => {
+  onAnnihilate: () => void;
+}> = ({ isOpen, onClose, patientName, onDeleteSingle, onDeleteWeek, onChangeSchedule, onDeleteColumn, onExtendWeek, onExtendColumn, onAnnihilate }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Modificar Turno">
       <div className="space-y-4">
@@ -374,6 +376,7 @@ const DeleteAppointmentOptionsModal: React.FC<{
         <button onClick={onDeleteSingle} className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar este turno</button>
         <button onClick={onDeleteWeek} className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar turnos de la semana</button>
         <button onClick={onDeleteColumn} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar Columna</button>
+        <button onClick={onAnnihilate} className="bg-red-800 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors border-2 border-red-500">Aniquilar</button>
       </div>
     </Modal>
   );
@@ -1128,6 +1131,43 @@ export default function App() {
     setSelectedPatientId(null); // Clear highlight for better UX feedback
   };
 
+  const handleAnnihilate = useCallback(() => {
+    if (!dateForDeletion || !selectedPatientId || !highlightedPatientName) return;
+
+    const confirmMessage = `¡Atención! Esta acción eliminará TODOS los turnos futuros de "${highlightedPatientName}" a partir de mañana y durante los próximos 3 meses.\n\nEsta acción no se puede deshacer. ¿Desea continuar?`;
+
+    if (window.confirm(confirmMessage)) {
+        const startDate = new Date(dateForDeletion);
+        startDate.setDate(startDate.getDate() + 1); // From tomorrow
+        startDate.setHours(0, 0, 0, 0);
+
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + 3); // For the next 3 months
+        endDate.setHours(23, 59, 59, 999);
+
+        // FIX: Explicitly typing `prev` and `app` to resolve TypeScript inference error.
+        setAppointments((prev: Appointment[]) => prev.filter((app: Appointment) => {
+            if (app.patientId !== selectedPatientId) {
+                return true; // Keep appointments of other patients
+            }
+            
+            const appDate = new Date(`${app.date}T12:00:00`); // Use midday to avoid timezone issues
+            
+            // Check if the appointment is within the annihilation range
+            const isInRange = appDate >= startDate && appDate <= endDate;
+
+            // Keep it if it's NOT in range
+            return !isInRange;
+        }));
+
+        setDeleteOptionsModalOpen(false);
+        setDateForDeletion(null);
+        setSelectedPatientId(null);
+        alert(`Se han eliminado los turnos futuros de ${highlightedPatientName}.`);
+    }
+  }, [dateForDeletion, selectedPatientId, highlightedPatientName, appointments]);
+
+
   // FIX: Wrapped handler in useCallback to stabilize its reference, which can help prevent subtle type inference issues in child components.
   const handleExtendWeek = useCallback(() => {
     if (!dateForDeletion || !selectedPatientId) return;
@@ -1312,12 +1352,14 @@ export default function App() {
   const handleUnifyConflict = useCallback((patientToKeep: Patient, patientToRemove: Patient) => {
     // Re-assign all appointments from the removed patient to the kept patient
     // FIX: Replaced imperative loop with a functional .map() to ensure type safety and immutability when updating state.
+    // FIX: Rewrote map to use an explicit block with return to resolve a persistent type inference issue.
     setAppointments((prev: Appointment[]) =>
-      prev.map((app: Appointment) =>
-        app.patientId === patientToRemove.id
-          ? { ...app, patientId: patientToKeep.id }
-          : app,
-      ),
+      prev.map((app: Appointment) => {
+        if (app.patientId === patientToRemove.id) {
+          return { ...app, patientId: patientToKeep.id };
+        }
+        return app;
+      }),
     );
   
     // Remove the obsolete patient record
@@ -1457,7 +1499,8 @@ export default function App() {
     if (editingAppointment) {
       // FIX: Extracted `patientId` to a const to help TypeScript's type inference within the
       // `.find()` callback, resolving an issue where `editingAppointment` was treated as `unknown`.
-      const patientId = editingAppointment.patientId;
+      // FIX: Use a type assertion to address a persistent TypeScript inference issue where `editingAppointment` is incorrectly typed as `unknown`.
+      const patientId = (editingAppointment as AppointmentWithDetails).patientId;
       // FIX: Explicitly typing `p` as `Patient` resolves the TypeScript inference error where `p.id` was inaccessible.
       const patient = patients.find((p: Patient) => p.id === patientId);
       return patient || null;
@@ -1620,6 +1663,7 @@ export default function App() {
         onDeleteColumn={handleDeleteColumn}
         onExtendWeek={handleExtendWeek}
         onExtendColumn={handleExtendColumn}
+        onAnnihilate={handleAnnihilate}
       />
       <DniConflictModal
         isOpen={isDniConflictModalOpen}
