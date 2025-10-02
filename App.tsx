@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
@@ -937,31 +933,27 @@ export default function App() {
       const patientNameLower = patientData.name.toLowerCase().trim();
       const newDni = patientData.dni?.trim() || null;
       
+      // Find a DIFFERENT patient with the same name but a different DNI.
       const conflictingPatient = currentPatients.find(p => 
+          p.id !== patientData.id && // Exclude the patient being edited from the search.
           p.name.toLowerCase().trim() === patientNameLower &&
           (p.dni?.trim() || null) !== newDni
       );
 
       if (conflictingPatient) {
-          const isEditingThisPatient = conflictingPatient.id === patientData.id;
-          const otherPatientsWithSameName = currentPatients.some(p => 
-              p.name.toLowerCase().trim() === patientNameLower && p.id !== patientData.id
+          const confirmation = window.confirm(
+              `ADVERTENCIA: Ya existe otro paciente llamado '${conflictingPatient.name}' con un DNI diferente (${conflictingPatient.dni || 'ninguno'}).\n\n` +
+              `Si continúa, se creará un registro de paciente completamente nuevo para '${patientData.name}'.\n\n` +
+              `Haga clic en 'Aceptar' para crear un NUEVO paciente, o 'Cancelar' para revisar los datos.`
           );
 
-          if (isEditingThisPatient || otherPatientsWithSameName || !patientData.id) {
-              const confirmation = window.confirm(
-                  `ADVERTENCIA: Ya existe un paciente llamado '${conflictingPatient.name}' con un DNI diferente.\n\n` +
-                  `Haga clic en 'Aceptar' para crear un NUEVO paciente con este DNI, o 'Cancelar' para no guardar.`
-              );
-
-              if (confirmation) {
-                  // User confirmed to create a new patient, so we generate a new ID.
-                  const newPatientId = `pat-${Date.now()}`;
-                  patientData.id = newPatientId;
-                  appointmentData.patientId = newPatientId;
-              } else {
-                  return; // User cancelled, so abort the save operation.
-              }
+          if (confirmation) {
+              // User confirmed to create a new patient, so we generate a new ID for them.
+              const newPatientId = `pat-${Date.now()}`;
+              patientData.id = newPatientId;
+              appointmentData.patientId = newPatientId;
+          } else {
+              return; // User cancelled, abort the save operation.
           }
       }
       
@@ -1444,6 +1436,7 @@ export default function App() {
   }, [dateForDeletion, selectedPatientId, appointments, patients, updateState]);
 
   const handleUnifyConflict = useCallback((patientToKeep: Patient, patientToRemove: Patient) => {
+    // FIX: Explicitly type `app` as `Appointment` to resolve an issue where its type was inferred as `unknown` within the `.map` callback.
     // FIX: Property 'patientId' does not exist on type 'unknown'.
     // The type for `app` was not being inferred correctly. Explicitly typing it as `Appointment` resolves the issue.
     const newAppointments = appointments.map((app: Appointment) => {
@@ -1583,6 +1576,7 @@ export default function App() {
     if (!editingAppointment) {
       return null;
     }
+    // FIX: Added a non-null assertion (`!`) to `editingAppointment` because the type narrowing from the preceding null check does not propagate into the `find` callback's closure.
     // FIX: Property 'patientId' does not exist on type 'unknown'.
     // Type narrowing from the null check is not propagating into the callback.
     // Using a non-null assertion (!) to inform TypeScript that `editingAppointment` is not null here.
