@@ -908,38 +908,42 @@ export default function App() {
   }, [selectedDate]);
 
   const handleSaveAppointment = (appointmentData: Appointment, patientData: Patient, recurringDays: number[], recurringWeeks: number) => {
-      const trimmedDni = patientData.dni?.trim();
       let currentPatients = [...patients];
       let currentAppointments = [...appointments];
 
-      // --- CHECK FOR SAME NAME, DIFFERENT DNI ---
-      if (patientData.name && trimmedDni) {
-          const existingPatientByName = currentPatients.find(
-              p => p.name.toLowerCase().trim() === patientData.name.toLowerCase().trim()
+      // --- ROBUST CHECK FOR SAME NAME, DIFFERENT DNI ---
+      const newDni = patientData.dni?.trim() || null;
+      if (patientData.name) {
+          const patientNameLower = patientData.name.toLowerCase().trim();
+          // Find any *other* patient with the same name but a different DNI.
+          const conflictingPatient = currentPatients.find(p => 
+              p.name.toLowerCase().trim() === patientNameLower &&
+              p.id !== patientData.id &&
+              (p.dni?.trim() || null) !== newDni
           );
 
-          if (existingPatientByName && (existingPatientByName.dni || '').trim() !== trimmedDni) {
+          if (conflictingPatient) {
+              const existingDni = conflictingPatient.dni?.trim() || null;
               const confirmation = window.confirm(
-                  `ADVERTENCIA: Ya existe un paciente llamado '${existingPatientByName.name}' con un DNI diferente (${existingPatientByName.dni || 'N/A'}).\n\n` +
-                  `¿Desea crear un nuevo paciente completamente distinto con el DNI ${trimmedDni}?`
+                  `ADVERTENCIA: Ya existe un paciente llamado '${conflictingPatient.name}' pero con un DNI diferente (DNI guardado: ${existingDni || 'N/A'}, DNI nuevo: ${newDni || 'N/A'}).\n\n` +
+                  `¿Confirma que está creando un paciente completamente nuevo y distinto?`
               );
 
               if (!confirmation) {
-                  return; // Abort save if user cancels
+                  return; // Abort save if user cancels, preventing the "blocking" issue.
               }
 
-              // If user confirms, ensure we are creating a NEW patient by giving them a new ID.
-              // This is crucial if the user selected the existing patient and then changed the DNI.
-              if (patientData.id === existingPatientByName.id) {
-                  const newPatientId = `pat-${Date.now()}`;
-                  patientData.id = newPatientId;
-                  appointmentData.patientId = newPatientId;
-              }
+              // User confirmed. We must ensure this is treated as a NEW patient.
+              // We generate a new ID to prevent accidentally overwriting the conflicting patient record.
+              const newPatientId = `pat-${Date.now()}`;
+              patientData.id = newPatientId;
+              appointmentData.patientId = newPatientId;
           }
       }
+      
+      const trimmedDni = patientData.dni?.trim();
 
       // --- UNIFICATION LOGIC (for existing appointments only) ---
-      // FIX: Added a guard to ensure `editingAppointment` is not null and help TypeScript infer its type correctly.
       if (editingAppointment) {
         const originalPatientId = editingAppointment.patientId;
         if (originalPatientId && trimmedDni) {
@@ -1404,8 +1408,8 @@ export default function App() {
 
   const handleUnifyConflict = useCallback((patientToKeep: Patient, patientToRemove: Patient) => {
     // FIX: Property 'patientId' does not exist on type 'unknown'.
-    // Explicitly casting `appointments` to `Appointment[]` ensures that `app` is correctly typed inside the map function.
-    const newAppointments = (appointments as Appointment[]).map((app) => {
+    // The type for `app` was not being inferred correctly. Explicitly typing it as `Appointment` resolves the issue.
+    const newAppointments = (appointments as Appointment[]).map((app: Appointment) => {
         if (app.patientId === patientToRemove.id) {
           return { ...app, patientId: patientToKeep.id };
         }
@@ -1543,9 +1547,9 @@ export default function App() {
       return null;
     }
     // FIX: Property 'patientId' does not exist on type 'unknown'.
-    // Directly accessing `patientId` on `editingAppointment` after the null check resolves a TypeScript inference issue.
-    // This relies on type narrowing, which is more robust than casting with `as`.
-    const patient = patients.find((p: Patient) => p.id === editingAppointment.patientId);
+    // Type narrowing from the null check is expected to work but appears to be failing.
+    // Casting to AppointmentWithDetails is a workaround to ensure type safety.
+    const patient = patients.find((p: Patient) => p.id === (editingAppointment as AppointmentWithDetails).patientId);
     return patient || null;
   }, [editingAppointment, patients]);
 
