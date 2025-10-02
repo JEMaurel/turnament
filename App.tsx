@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
@@ -239,7 +237,12 @@ const AppointmentModal: React.FC<{
     );
 };
 
-const PatientRegistryModal: React.FC<{isOpen: boolean; onClose: () => void; patients: Patient[]}> = ({ isOpen, onClose, patients }) => {
+const PatientRegistryModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  patients: Patient[];
+  onDeletePatient: (patientId: string) => void;
+}> = ({ isOpen, onClose, patients, onDeletePatient }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
@@ -269,26 +272,41 @@ const PatientRegistryModal: React.FC<{isOpen: boolean; onClose: () => void; pati
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={selectedPatient ? "Detalles del Paciente" : "Registro de Pacientes"}>
             {selectedPatient ? (
-                <div className="max-h-[60vh] overflow-y-auto pr-2">
-                    <button onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 mb-4 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                        <span>Volver a la lista</span>
-                    </button>
-                    <div className="space-y-4">
-                        <h3 className="text-3xl font-bold text-white border-b border-slate-700 pb-2">{selectedPatient.name}</h3>
-                        <PatientDetail label="DNI" value={selectedPatient.dni} />
-                        <PatientDetail label="Obra Social" value={selectedPatient.insurance} />
-                        <PatientDetail label="Médico Derivante" value={selectedPatient.doctor} />
-                        <PatientDetail label="Tratamiento" value={selectedPatient.treatment} />
-                        <PatientDetail label="Diagnóstico (Dx)" value={selectedPatient.diagnosis} />
-                        <PatientDetail label="Observaciones (Obs)" value={selectedPatient.observations} />
+                <>
+                    <div className="max-h-[60vh] overflow-y-auto pr-2">
+                        <button onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 mb-4 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                            <span>Volver a la lista</span>
+                        </button>
+                        <div className="space-y-4">
+                            <h3 className="text-3xl font-bold text-white border-b border-slate-700 pb-2">{selectedPatient.name}</h3>
+                            <PatientDetail label="DNI" value={selectedPatient.dni} />
+                            <PatientDetail label="Obra Social" value={selectedPatient.insurance} />
+                            <PatientDetail label="Médico Derivante" value={selectedPatient.doctor} />
+                            <PatientDetail label="Tratamiento" value={selectedPatient.treatment} />
+                            <PatientDetail label="Diagnóstico (Dx)" value={selectedPatient.diagnosis} />
+                            <PatientDetail label="Observaciones (Obs)" value={selectedPatient.observations} />
+                        </div>
                     </div>
-                </div>
+                    <div className="flex justify-end pt-4 mt-4 border-t border-slate-700">
+                        <button
+                            onClick={() => {
+                                onDeletePatient(selectedPatient.id);
+                                setSelectedPatient(null);
+                            }}
+                            className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
+                            aria-label={`Eliminar permanentemente a ${selectedPatient.name}`}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>
+                            <span>Eliminar Paciente</span>
+                        </button>
+                    </div>
+                </>
             ) : (
                 <>
                     <div className="mb-4 relative">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
                                 <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
                             </svg>
                         </span>
@@ -307,13 +325,28 @@ const PatientRegistryModal: React.FC<{isOpen: boolean; onClose: () => void; pati
                                 {filteredPatients.map(patient => (
                                     <li 
                                         key={patient.id} 
-                                        className="p-3 bg-slate-700 rounded-md cursor-pointer hover:bg-slate-600 transition-colors"
+                                        className="flex justify-between items-center p-3 bg-slate-700 rounded-md hover:bg-slate-600 transition-colors"
+                                    >
+                                      <span
+                                        className="flex-grow cursor-pointer"
                                         onClick={() => setSelectedPatient(patient)}
                                         role="button"
                                         tabIndex={0}
                                         onKeyPress={(e) => e.key === 'Enter' && setSelectedPatient(patient)}
-                                    >
+                                      >
                                         {patient.name}
+                                      </span>
+                                      <button
+                                          onClick={(e) => {
+                                              e.stopPropagation();
+                                              onDeletePatient(patient.id);
+                                          }}
+                                          className="p-2 text-red-400 rounded-full hover:bg-red-900/50 transition-colors flex-shrink-0 ml-2"
+                                          aria-label={`Eliminar a ${patient.name}`}
+                                          title={`Eliminar a ${patient.name} y todos sus turnos`}
+                                      >
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>
+                                      </button>
                                     </li>
                                 ))}
                             </ul>
@@ -908,12 +941,40 @@ export default function App() {
   }, [selectedDate]);
 
   const handleSaveAppointment = (appointmentData: Appointment, patientData: Patient, recurringDays: number[], recurringWeeks: number) => {
-      const trimmedDni = patientData.dni?.trim();
       let currentPatients = [...patients];
       let currentAppointments = [...appointments];
 
+      // --- ROBUST CHECK FOR SAME NAME, DIFFERENT DNI ---
+      const patientNameLower = patientData.name.toLowerCase().trim();
+      const newDni = patientData.dni?.trim() || null;
+      
+      // Find a DIFFERENT patient with the same name but a different DNI.
+      const conflictingPatient = currentPatients.find(p => 
+          p.id !== patientData.id && // Exclude the patient being edited from the search.
+          p.name.toLowerCase().trim() === patientNameLower &&
+          (p.dni?.trim() || null) !== newDni
+      );
+
+      if (conflictingPatient) {
+          const confirmation = window.confirm(
+              `ADVERTENCIA: Ya existe otro paciente llamado '${conflictingPatient.name}' con un DNI diferente (${conflictingPatient.dni || 'ninguno'}).\n\n` +
+              `Si continúa, se creará un registro de paciente completamente nuevo para '${patientData.name}'.\n\n` +
+              `Haga clic en 'Aceptar' para crear un NUEVO paciente, o 'Cancelar' para revisar los datos.`
+          );
+
+          if (confirmation) {
+              // User confirmed to create a new patient, so we generate a new ID for them.
+              const newPatientId = `pat-${Date.now()}`;
+              patientData.id = newPatientId;
+              appointmentData.patientId = newPatientId;
+          } else {
+              return; // User cancelled, abort the save operation.
+          }
+      }
+      
+      const trimmedDni = patientData.dni?.trim();
+
       // --- UNIFICATION LOGIC (for existing appointments only) ---
-      // FIX: Added a guard to ensure `editingAppointment` is not null and help TypeScript infer its type correctly.
       if (editingAppointment) {
         const originalPatientId = editingAppointment.patientId;
         if (originalPatientId && trimmedDni) {
@@ -990,30 +1051,35 @@ export default function App() {
           const renumberedAppointments = renumberFutureSessions(updatedAppointments, appointmentData);
           updateState({ patients: currentPatients, appointments: renumberedAppointments });
       } else {
-          let newAppointments: Appointment[] = [appointmentData];
-           if (recurringDays.length > 0 && selectedDate && recurringWeeks >= 0) {
-              const appointmentsToCreate: Appointment[] = [];
-              
+          let newAppointments: Appointment[] = [];
+          
+          if (recurringDays.length > 0 && selectedDate && recurringWeeks >= 0) {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
               const startWeekMonday = getMonday(selectedDate);
-              const endDate = new Date(startWeekMonday);
-              endDate.setDate(endDate.getDate() + (recurringWeeks * 7) + 6);
-              
-              let currentDatePointer = new Date(selectedDate);
-              currentDatePointer.setDate(currentDatePointer.getDate() + 1);
+              const totalDaysToScan = (recurringWeeks + 1) * 7;
 
-              while(currentDatePointer <= endDate) {
-                  if (recurringDays.includes(currentDatePointer.getDay())) {
-                      appointmentsToCreate.push({
+              for (let i = 0; i < totalDaysToScan; i++) {
+                  const potentialDate = new Date(startWeekMonday);
+                  potentialDate.setDate(startWeekMonday.getDate() + i);
+
+                  if (recurringDays.includes(potentialDate.getDay()) && potentialDate >= today) {
+                      newAppointments.push({
                           ...appointmentData,
-                          id: `app-${Date.now()}-${currentDatePointer.toISOString()}`,
-                          date: currentDatePointer.toISOString().split('T')[0]
+                          id: `app-${Date.now()}-${potentialDate.toISOString()}-${i}`,
+                          date: potentialDate.toISOString().split('T')[0],
                       });
                   }
-                  currentDatePointer.setDate(currentDatePointer.getDate() + 1);
               }
-              newAppointments.push(...appointmentsToCreate);
+          } else {
+              const appointmentDate = new Date(`${appointmentData.date}T12:00:00`);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              if (appointmentDate >= today) {
+                  newAppointments.push(appointmentData);
+              }
           }
-          
+
           if (newAppointments.length > 1) {
               const sessionMatch = newAppointments[0].session.match(/^(\d+)(.*)$/);
               if (sessionMatch) {
@@ -1063,14 +1129,29 @@ export default function App() {
 
   const handleDeleteAppointment = useCallback((appointmentId: string) => {
     if (window.confirm("¿Estás seguro de que quieres eliminar este turno?")) {
-      const newAppointments = appointments.filter(a => a.id !== appointmentId);
+      // FIX: Explicitly typing `a` prevents TypeScript from inferring it as `unknown`.
+      const newAppointments = appointments.filter((a: Appointment) => a.id !== appointmentId);
       updateState({ patients, appointments: newAppointments });
+    }
+  }, [patients, appointments, updateState]);
+
+  const handleDeletePatient = useCallback((patientId: string) => {
+    const patientToDelete = patients.find(p => p.id === patientId);
+    if (!patientToDelete) return;
+
+    const confirmMessage = `¡Atención! Esta acción eliminará al paciente '${patientToDelete.name}' y TODOS sus turnos agendados. Esta acción no se puede deshacer.\n\n¿Desea continuar?`;
+    
+    if (window.confirm(confirmMessage)) {
+      const newPatients = patients.filter(p => p.id !== patientId);
+      const newAppointments = appointments.filter(app => app.patientId !== patientId);
+      updateState({ patients: newPatients, appointments: newAppointments });
     }
   }, [patients, appointments, updateState]);
 
   const handleDeleteSingle = () => {
     if (!dateForDeletion || !selectedPatientId) return;
     const dateString = dateForDeletion.toISOString().split('T')[0];
+    // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
     const newAppointments = appointments.filter((app: Appointment) => 
       !(app.patientId === selectedPatientId && app.date === dateString)
     );
@@ -1095,6 +1176,7 @@ export default function App() {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
+    // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
     const newAppointments = appointments.filter((app: Appointment) => {
       if (app.patientId !== selectedPatientId) {
         return true; // Keep appointments for other patients
@@ -1117,6 +1199,7 @@ export default function App() {
     const targetDateString = targetDate.toISOString().split('T')[0];
     const targetDayOfWeek = targetDate.getDay();
 
+    // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
     const newAppointments = appointments.filter((app: Appointment) => {
         if (app.patientId !== selectedPatientId) {
             return true;
@@ -1201,25 +1284,49 @@ export default function App() {
         return;
     }
 
-    const incrementSession = (session: string): string => {
-      const match = session.match(/^(\d+)(\s*\/.*)?$/);
+    const latestAppointment = appointments
+      .filter((a: Appointment) => a.patientId === selectedPatientId)
+      .sort((a: Appointment, b: Appointment) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        return b.time.localeCompare(a.time);
+      })[0];
+      
+    let baseSessionNumber = 0;
+    let sessionSuffix = '';
+    
+    if (latestAppointment) {
+      const match = latestAppointment.session.match(/^(\d+)(.*)$/);
       if (match) {
-        const num = parseInt(match[1], 10);
-        const rest = match[2] || '';
-        return `${num + 1}${rest}`;
+        baseSessionNumber = parseInt(match[1], 10);
+        sessionSuffix = match[2] || '';
       }
-      return session;
-    };
+    } else if (appointmentsInWeek.length > 0) {
+      const match = appointmentsInWeek[0].session.match(/^(\d+)(.*)$/);
+      if (match) {
+        baseSessionNumber = parseInt(match[1], 10) - appointmentsInWeek.length;
+        sessionSuffix = match[2] || '';
+      }
+    }
+    
+    const appointmentsToCreate = appointmentsInWeek
+        .map((app: Appointment) => {
+            const nextWeekDate = new Date(`${app.date}T12:00:00`);
+            nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+            return {
+                ...app,
+                id: `app-${Date.now()}-${nextWeekDate.toISOString()}-${Math.random()}`,
+                date: nextWeekDate.toISOString().split('T')[0],
+            };
+        })
+        .sort((a, b) => {
+            if (a.date !== b.date) return a.date.localeCompare(b.date);
+            return a.time.localeCompare(b.time);
+        });
 
-    const newAppointmentsToAdd = appointmentsInWeek.map((app: Appointment) => {
-        const nextWeekDate = new Date(`${app.date}T12:00:00`);
-        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-        return {
-            ...app,
-            id: `app-${Date.now()}-${nextWeekDate.toISOString()}`,
-            date: nextWeekDate.toISOString().split('T')[0],
-            session: incrementSession(app.session),
-        };
+    let sessionCounter = baseSessionNumber;
+    const newAppointmentsToAdd = appointmentsToCreate.map(app => {
+      sessionCounter++;
+      return { ...app, session: `${sessionCounter}${sessionSuffix}` };
     });
 
     const existingAppointmentsByDateTime = new Map(appointments.map((app: Appointment) => [`${app.date}|${app.time}`, app]));
@@ -1344,6 +1451,8 @@ export default function App() {
   }, [dateForDeletion, selectedPatientId, appointments, patients, updateState]);
 
   const handleUnifyConflict = useCallback((patientToKeep: Patient, patientToRemove: Patient) => {
+    // FIX: Explicitly typing `app` as `Appointment` resolves an issue where its type
+    // was inferred as `unknown` within the `.map` callback.
     const newAppointments = appointments.map((app: Appointment) => {
         if (app.patientId === patientToRemove.id) {
           return { ...app, patientId: patientToKeep.id };
@@ -1477,15 +1586,14 @@ export default function App() {
     }, []);
 
 
-  // Fix: Restructuring the logic to safely access `patientId` by first checking if `editingAppointment` exists. This helps TypeScript's type narrowing and prevents errors on potentially null objects.
   const existingPatientForModal = useMemo((): Patient | null => {
-    // FIX: Resolved a TypeScript inference error. By checking for a null `editingAppointment` first and then
-    // casting it, we ensure its type is correctly inferred as `AppointmentWithDetails` for subsequent use.
     if (!editingAppointment) {
       return null;
     }
-    const currentAppointment = editingAppointment as AppointmentWithDetails;
-    const patient = patients.find((p: Patient) => p.id === currentAppointment.patientId);
+    // FIX: A non-null assertion (`!`) is not sufficient when the type is `unknown`.
+    // An explicit type cast is used to correctly type `editingAppointment`.
+    const patientId = (editingAppointment as AppointmentWithDetails).patientId;
+    const patient = patients.find((p: Patient) => p.id === patientId);
     return patient || null;
   }, [editingAppointment, patients]);
 
@@ -1632,6 +1740,7 @@ export default function App() {
         isOpen={isPatientRegistryOpen}
         onClose={() => setPatientRegistryOpen(false)}
         patients={patients}
+        onDeletePatient={handleDeletePatient}
       />
       <AiAssistantModal 
         isOpen={isAiModalOpen}
