@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
@@ -12,6 +13,12 @@ interface DaySchedule {
   times: string[];
 }
 type WeekSchedule = (DaySchedule | null)[];
+
+// Type for the state snapshot
+interface AppState {
+  patients: Patient[];
+  appointments: Appointment[];
+}
 
 
 // Modal Components defined within App.tsx to easily access state and handlers
@@ -582,55 +589,66 @@ const getMonday = (d: Date): Date => {
     return monday;
 };
 
+const MAX_HISTORY_SIZE = 15;
 
 export default function App() {
   // State
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   
-  // Data is now stored in localStorage to protect patient privacy
-  const [patients, setPatients] = useState<Patient[]>(() => {
+  // Undo/Redo State Management
+  const [history, setHistory] = useState<AppState[]>(() => {
     try {
-      const saved = window.localStorage.getItem('consultorio-patients');
-      // Load saved data or default to an empty array.
-      // FIX: Cast the result from JSON.parse to ensure the state is correctly typed as Patient[] and not any[] or unknown[].
-      return saved ? JSON.parse(saved) as Patient[] : [];
+      const savedPatients = window.localStorage.getItem('consultorio-patients');
+      const savedAppointments = window.localStorage.getItem('consultorio-appointments');
+      const patients = savedPatients ? JSON.parse(savedPatients) as Patient[] : [];
+      const appointments = savedAppointments ? JSON.parse(savedAppointments) as Appointment[] : [];
+      return [{ patients, appointments }];
     } catch (error) {
-      console.error("Error loading patients from localStorage:", error);
-      // If there's an error, start with an empty list to prevent app crash.
-      return [];
+      console.error("Error loading initial state from localStorage:", error);
+      return [{ patients: [], appointments: [] }];
     }
   });
+  const [historyIndex, setHistoryIndex] = useState(0);
 
-  const [appointments, setAppointments] = useState<Appointment[]>(() => {
-    try {
-      const saved = window.localStorage.getItem('consultorio-appointments');
-      // Load saved data or default to an empty array.
-      // FIX: Cast the result from JSON.parse to ensure the state is correctly typed as Appointment[] and not any[] or unknown[].
-      return saved ? JSON.parse(saved) as Appointment[] : [];
-    } catch (error) {
-      console.error("Error loading appointments from localStorage:", error);
-      // If there's an error, start with an empty list to prevent app crash.
-      return [];
+  const { patients, appointments } = history[historyIndex];
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < history.length - 1;
+
+  // Function to update state and record history
+  const updateState = useCallback((newState: AppState) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(newState);
+    
+    if (newHistory.length > MAX_HISTORY_SIZE) {
+        newHistory.shift();
     }
-  });
+    
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  }, [history, historyIndex]);
+  
+  const handleUndo = useCallback(() => {
+    if (canUndo) {
+        setHistoryIndex(historyIndex - 1);
+    }
+  }, [canUndo, historyIndex]);
 
-  // Effect to save data to localStorage whenever it changes
+  const handleRedo = useCallback(() => {
+      if (canRedo) {
+          setHistoryIndex(historyIndex + 1);
+      }
+  }, [canRedo, historyIndex]);
+
+  // Effect to save current state to localStorage
   useEffect(() => {
     try {
       window.localStorage.setItem('consultorio-patients', JSON.stringify(patients));
-    } catch (error) {
-      console.error("Error saving patients to localStorage:", error);
-    }
-  }, [patients]);
-
-  useEffect(() => {
-    try {
       window.localStorage.setItem('consultorio-appointments', JSON.stringify(appointments));
     } catch (error) {
-      console.error("Error saving appointments to localStorage:", error);
+      console.error("Error saving state to localStorage:", error);
     }
-  }, [appointments]);
+  }, [patients, appointments]);
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
@@ -891,34 +909,31 @@ export default function App() {
 
   const handleSaveAppointment = (appointmentData: Appointment, patientData: Patient, recurringDays: number[], recurringWeeks: number) => {
       const trimmedDni = patientData.dni?.trim();
+      let currentPatients = [...patients];
+      let currentAppointments = [...appointments];
 
       // --- UNIFICATION LOGIC (for existing appointments only) ---
       // FIX: Added a guard to ensure `editingAppointment` is not null and help TypeScript infer its type correctly.
       if (editingAppointment) {
         const originalPatientId = editingAppointment.patientId;
         if (originalPatientId && trimmedDni) {
-          const targetPatientByDni = patients.find(p => p.dni === trimmedDni && p.id !== originalPatientId);
+          const targetPatientByDni = currentPatients.find(p => p.dni === trimmedDni && p.id !== originalPatientId);
           if (targetPatientByDni) {
-            const sourcePatientName = patients.find(p => p.id === originalPatientId)?.name || 'Desconocido';
+            const sourcePatientName = currentPatients.find(p => p.id === originalPatientId)?.name || 'Desconocido';
             const confirmationMessage = `Se encontró al paciente "${targetPatientByDni.name}" con el mismo DNI. ¿Desea unificar todos los turnos de "${sourcePatientName}" con este paciente? Se usarán los datos del formulario actual para actualizar el registro.`;
 
             if (window.confirm(confirmationMessage)) {
-              // 1. Update target patient with data from the form
-              setPatients(prev =>
-                prev.map(p =>
+              const newPatients = currentPatients
+                .map(p =>
                   p.id === targetPatientByDni.id ? { ...patientData, id: targetPatientByDni.id } : p
-                ).filter(p => p.id !== originalPatientId) // 2. Remove source patient
-              );
+                ).filter(p => p.id !== originalPatientId);
 
-              // 3. Re-assign all appointments from source patient to target patient
-              // FIX: Replaced imperative loop with a functional .map() to ensure type safety and immutability when updating state.
-              setAppointments((prev: Appointment[]) =>
-                prev.map((app: Appointment) =>
+              const newAppointments = currentAppointments.map((app: Appointment) =>
                   app.patientId === originalPatientId
                     ? { ...app, patientId: targetPatientByDni.id }
                     : app,
-                ),
-              );
+                );
+              updateState({ patients: newPatients, appointments: newAppointments });
               return; // Stop further execution
             }
           }
@@ -926,11 +941,11 @@ export default function App() {
       }
 
       // --- REGULAR SAVE LOGIC (if no unification happened) ---
-      const patientExists = patients.some(p => p.id === patientData.id);
+      const patientExists = currentPatients.some(p => p.id === patientData.id);
       if (patientExists) {
-          setPatients(prev => prev.map(p => p.id === patientData.id ? patientData : p));
+          currentPatients = currentPatients.map(p => p.id === patientData.id ? patientData : p);
       } else {
-          setPatients(prev => [...prev, patientData]);
+          currentPatients = [...currentPatients, patientData];
       }
 
       const renumberFutureSessions = (
@@ -967,13 +982,13 @@ export default function App() {
       };
 
       // FIX: Explicitly typing `a` prevents TypeScript from inferring it as `unknown`.
-      const appointmentExists = appointments.some((a: Appointment) => a.id === appointmentData.id);
+      const appointmentExists = currentAppointments.some((a: Appointment) => a.id === appointmentData.id);
       
       if (appointmentExists) {
           // FIX: Explicitly typing `a` prevents TypeScript from inferring it as `unknown`.
-          const updatedAppointments = appointments.map((a: Appointment) => a.id === appointmentData.id ? appointmentData : a);
+          const updatedAppointments = currentAppointments.map((a: Appointment) => a.id === appointmentData.id ? appointmentData : a);
           const renumberedAppointments = renumberFutureSessions(updatedAppointments, appointmentData);
-          setAppointments(renumberedAppointments);
+          updateState({ patients: currentPatients, appointments: renumberedAppointments });
       } else {
           let newAppointments: Appointment[] = [appointmentData];
            if (recurringDays.length > 0 && selectedDate && recurringWeeks >= 0) {
@@ -1016,7 +1031,7 @@ export default function App() {
           }
 
           // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
-          const existingAppointmentsByDateTime = new Map(appointments.map((app: Appointment) => [`${app.date}|${app.time}`, app]));
+          const existingAppointmentsByDateTime = new Map(currentAppointments.map((app: Appointment) => [`${app.date}|${app.time}`, app]));
           const conflicts = newAppointments.filter(newApp => existingAppointmentsByDateTime.has(`${newApp.date}|${newApp.time}`));
 
           if (conflicts.length > 0) {
@@ -1024,7 +1039,7 @@ export default function App() {
               for (const c of conflicts) {
                   const existing = existingAppointmentsByDateTime.get(`${c.date}|${c.time}`);
                   if (existing) {
-                      const patientName = patients.find(p => p.id === existing.patientId)?.name || 'Desconocido';
+                      const patientName = currentPatients.find(p => p.id === existing.patientId)?.name || 'Desconocido';
                       conflictDetailsList.push(`- ${new Date(c.date + 'T12:00:00').toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit'})} a las ${c.time} con ${patientName}`);
                   }
               }
@@ -1036,11 +1051,11 @@ export default function App() {
 
               const conflictKeys = new Set(conflicts.map(c => `${c.date}|${c.time}`));
               // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
-              const nonConflictingAppointments = appointments.filter((app: Appointment) => !conflictKeys.has(`${app.date}|${app.time}`));
-              setAppointments([...nonConflictingAppointments, ...newAppointments]);
+              const nonConflictingAppointments = currentAppointments.filter((app: Appointment) => !conflictKeys.has(`${app.date}|${app.time}`));
+              updateState({ patients: currentPatients, appointments: [...nonConflictingAppointments, ...newAppointments] });
           } else {
               // FIX: Explicitly typing `prev` prevents TypeScript from inferring it as `unknown[]`.
-              setAppointments((prev: Appointment[]) => [...prev, ...newAppointments]);
+              updateState({ patients: currentPatients, appointments: [...currentAppointments, ...newAppointments] });
           }
       }
   };
@@ -1048,19 +1063,18 @@ export default function App() {
 
   const handleDeleteAppointment = useCallback((appointmentId: string) => {
     if (window.confirm("¿Estás seguro de que quieres eliminar este turno?")) {
-      // FIX: Explicitly typing `prev` prevents TypeScript from inferring `a` as `unknown`.
-      setAppointments((prev: Appointment[]) => prev.filter(a => a.id !== appointmentId));
+      const newAppointments = appointments.filter(a => a.id !== appointmentId);
+      updateState({ patients, appointments: newAppointments });
     }
-  }, []);
+  }, [patients, appointments, updateState]);
 
   const handleDeleteSingle = () => {
     if (!dateForDeletion || !selectedPatientId) return;
     const dateString = dateForDeletion.toISOString().split('T')[0];
-    // FIX: Explicitly typing the `app` parameter as `Appointment` resolves a TypeScript
-    // inference error where it was being treated as `unknown`.
-    setAppointments((prev: Appointment[]) => prev.filter((app: Appointment) => 
+    const newAppointments = appointments.filter((app: Appointment) => 
       !(app.patientId === selectedPatientId && app.date === dateString)
-    ));
+    );
+    updateState({ patients, appointments: newAppointments });
     setDeleteOptionsModalOpen(false);
     setDateForDeletion(null);
   };
@@ -1081,15 +1095,15 @@ export default function App() {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
-    // FIX: Explicitly typing `prev` and `app` to prevent TypeScript from inferring `app` as `unknown`.
-    setAppointments((prev: Appointment[]) => prev.filter((app: Appointment) => {
+    const newAppointments = appointments.filter((app: Appointment) => {
       if (app.patientId !== selectedPatientId) {
         return true; // Keep appointments for other patients
       }
       const appDate = new Date(`${app.date}T12:00:00`); // Use midday to avoid timezone issues
       return !(appDate >= startOfWeek && appDate <= endOfWeek);
-    }));
+    });
 
+    updateState({ patients, appointments: newAppointments });
     setDeleteOptionsModalOpen(false);
     setDateForDeletion(null);
   };
@@ -1103,32 +1117,26 @@ export default function App() {
     const targetDateString = targetDate.toISOString().split('T')[0];
     const targetDayOfWeek = targetDate.getDay();
 
-    // FIX: Explicitly typing `prev` and `app` to prevent TypeScript from inferring `app` as `unknown`.
-    setAppointments((prev: Appointment[]) => prev.filter((app: Appointment) => {
-        // Keep appointments if they don't belong to the selected patient
+    const newAppointments = appointments.filter((app: Appointment) => {
         if (app.patientId !== selectedPatientId) {
             return true;
         }
         
-        const appDate = new Date(`${app.date}T12:00:00`); // Use midday to avoid timezone issues for getDay()
-
-        // Check if the appointment is after the target date AND on the same day of the week
+        const appDate = new Date(`${app.date}T12:00:00`);
         const isFutureDate = app.date > targetDateString;
         const isSameDayOfWeek = appDate.getDay() === targetDayOfWeek;
 
-        // If both conditions are true, we filter out (delete) this appointment
         if (isFutureDate && isSameDayOfWeek) {
             return false;
         }
         
-        // Otherwise, keep the appointment
         return true;
-    }));
+    });
 
-    // Reset state after the operation
+    updateState({ patients, appointments: newAppointments });
     setDeleteOptionsModalOpen(false);
     setDateForDeletion(null);
-    setSelectedPatientId(null); // Clear highlight for better UX feedback
+    setSelectedPatientId(null);
   };
 
   const handleAnnihilate = useCallback(() => {
@@ -1145,27 +1153,23 @@ export default function App() {
         endDate.setMonth(endDate.getMonth() + 3); // For the next 3 months
         endDate.setHours(23, 59, 59, 999);
 
-        // FIX: Explicitly typing `prev` and `app` to resolve TypeScript inference error.
-        setAppointments((prev: Appointment[]) => prev.filter((app: Appointment) => {
+        const newAppointments = appointments.filter((app: Appointment) => {
             if (app.patientId !== selectedPatientId) {
-                return true; // Keep appointments of other patients
+                return true;
             }
             
-            const appDate = new Date(`${app.date}T12:00:00`); // Use midday to avoid timezone issues
-            
-            // Check if the appointment is within the annihilation range
+            const appDate = new Date(`${app.date}T12:00:00`);
             const isInRange = appDate >= startDate && appDate <= endDate;
-
-            // Keep it if it's NOT in range
             return !isInRange;
-        }));
+        });
 
+        updateState({ patients, appointments: newAppointments });
         setDeleteOptionsModalOpen(false);
         setDateForDeletion(null);
         setSelectedPatientId(null);
         alert(`Se han eliminado los turnos futuros de ${highlightedPatientName}.`);
     }
-  }, [dateForDeletion, selectedPatientId, highlightedPatientName, appointments]);
+  }, [dateForDeletion, selectedPatientId, highlightedPatientName, appointments, patients, updateState]);
 
 
   // FIX: Wrapped handler in useCallback to stabilize its reference, which can help prevent subtle type inference issues in child components.
@@ -1184,7 +1188,6 @@ export default function App() {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
-    // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
     const appointmentsInWeek = appointments.filter((app: Appointment) => {
         if (app.patientId !== selectedPatientId) return false;
         const appDate = new Date(`${app.date}T12:00:00`);
@@ -1208,7 +1211,7 @@ export default function App() {
       return session;
     };
 
-    const newAppointments = appointmentsInWeek.map((app: Appointment) => {
+    const newAppointmentsToAdd = appointmentsInWeek.map((app: Appointment) => {
         const nextWeekDate = new Date(`${app.date}T12:00:00`);
         nextWeekDate.setDate(nextWeekDate.getDate() + 7);
         return {
@@ -1219,9 +1222,8 @@ export default function App() {
         };
     });
 
-    // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
     const existingAppointmentsByDateTime = new Map(appointments.map((app: Appointment) => [`${app.date}|${app.time}`, app]));
-    const conflicts = newAppointments.filter(newApp => existingAppointmentsByDateTime.has(`${newApp.date}|${newApp.time}`));
+    const conflicts = newAppointmentsToAdd.filter(newApp => existingAppointmentsByDateTime.has(`${newApp.date}|${newApp.time}`));
 
     if (conflicts.length > 0) {
         const conflictDetailsList: string[] = [];
@@ -1241,25 +1243,22 @@ export default function App() {
         }
 
         const conflictKeys = new Set(conflicts.map(c => `${c.date}|${c.time}`));
-        // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
         const nonConflictingAppointments = appointments.filter((app: Appointment) => !conflictKeys.has(`${app.date}|${app.time}`));
-        setAppointments([...nonConflictingAppointments, ...newAppointments]);
+        updateState({patients, appointments: [...nonConflictingAppointments, ...newAppointmentsToAdd]});
     } else {
-        // FIX: Explicitly typing `prev` prevents TypeScript from inferring it as `unknown[]`.
-        setAppointments((prev: Appointment[]) => [...prev, ...newAppointments]);
+        updateState({patients, appointments: [...appointments, ...newAppointmentsToAdd]});
     }
 
     setDeleteOptionsModalOpen(false);
     setDateForDeletion(null);
     setSelectedPatientId(null);
-  }, [dateForDeletion, selectedPatientId, appointments, patients]);
+  }, [dateForDeletion, selectedPatientId, appointments, patients, updateState]);
   
   const handleExtendColumn = useCallback(() => {
     if (!dateForDeletion || !selectedPatientId) return;
 
     const dateString = dateForDeletion.toISOString().split('T')[0];
 
-    // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
     const appointmentsOnDay = appointments.filter((app: Appointment) => {
         return app.patientId === selectedPatientId && app.date === dateString;
     });
@@ -1273,9 +1272,10 @@ export default function App() {
     
     appointmentsOnDay.sort((a,b) => a.time.localeCompare(b.time));
 
+    // FIX: Explicitly typing the parameters in `filter` and `sort` resolves a TypeScript inference issue where they were being treated as `unknown`.
     const latestAppointment = appointments
-        .filter(a => a.patientId === selectedPatientId)
-        .sort((a,b) => {
+        .filter((a: Appointment) => a.patientId === selectedPatientId)
+        .sort((a: Appointment, b: Appointment) => {
             if (a.date !== b.date) return b.date.localeCompare(a.date);
             return b.time.localeCompare(a.time);
         })[0];
@@ -1283,7 +1283,6 @@ export default function App() {
     let baseSessionNumber = 0;
     let sessionSuffix = '';
     
-    // Determine the starting session number from the latest appointment of the patient
     if (latestAppointment) {
         const match = latestAppointment.session.match(/^(\d+)(.*)$/);
         if (match) {
@@ -1291,7 +1290,6 @@ export default function App() {
             sessionSuffix = match[2] || '';
         }
     } else {
-        // This is a fallback, but we should always have a latest appointment if we are extending one.
         const match = appointmentsOnDay[0].session.match(/^(\d+)(.*)$/);
         if (match) {
             baseSessionNumber = parseInt(match[1], 10);
@@ -1299,7 +1297,7 @@ export default function App() {
         }
     }
 
-    const newAppointments = appointmentsOnDay.map((app: Appointment, index) => {
+    const newAppointmentsToAdd = appointmentsOnDay.map((app: Appointment, index) => {
         const nextWeekDate = new Date(`${app.date}T12:00:00`);
         nextWeekDate.setDate(nextWeekDate.getDate() + 7);
         
@@ -1313,10 +1311,8 @@ export default function App() {
         };
     });
 
-    // Conflict check and state update logic (reused from handleExtendWeek)
-    // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
     const existingAppointmentsByDateTime = new Map(appointments.map((app: Appointment) => [`${app.date}|${app.time}`, app]));
-    const conflicts = newAppointments.filter(newApp => existingAppointmentsByDateTime.has(`${newApp.date}|${newApp.time}`));
+    const conflicts = newAppointmentsToAdd.filter(newApp => existingAppointmentsByDateTime.has(`${newApp.date}|${newApp.time}`));
 
     if (conflicts.length > 0) {
         const conflictDetailsList: string[] = [];
@@ -1336,38 +1332,28 @@ export default function App() {
         }
 
         const conflictKeys = new Set(conflicts.map(c => `${c.date}|${c.time}`));
-        // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
         const nonConflictingAppointments = appointments.filter((app: Appointment) => !conflictKeys.has(`${app.date}|${app.time}`));
-        setAppointments([...nonConflictingAppointments, ...newAppointments]);
+        updateState({patients, appointments: [...nonConflictingAppointments, ...newAppointmentsToAdd]});
     } else {
-        // FIX: Explicitly typing `prev` prevents TypeScript from inferring it as `unknown[]`.
-        setAppointments((prev: Appointment[]) => [...prev, ...newAppointments]);
+        updateState({patients, appointments: [...appointments, ...newAppointmentsToAdd]});
     }
 
     setDeleteOptionsModalOpen(false);
     setDateForDeletion(null);
-    setSelectedPatientId(null); // Clear highlight for better UX feedback
-  }, [dateForDeletion, selectedPatientId, appointments, patients]);
+    setSelectedPatientId(null);
+  }, [dateForDeletion, selectedPatientId, appointments, patients, updateState]);
 
   const handleUnifyConflict = useCallback((patientToKeep: Patient, patientToRemove: Patient) => {
-    // Re-assign all appointments from the removed patient to the kept patient
-    // FIX: Replaced imperative loop with a functional .map() to ensure type safety and immutability when updating state.
-    // FIX: Rewrote map to use an explicit block with return to resolve a persistent type inference issue.
-    setAppointments((prev: Appointment[]) =>
-      prev.map((app: Appointment) => {
+    const newAppointments = appointments.map((app: Appointment) => {
         if (app.patientId === patientToRemove.id) {
           return { ...app, patientId: patientToKeep.id };
         }
         return app;
-      }),
-    );
+    });
   
-    // Remove the obsolete patient record
-    setPatients(prev => prev.filter(p => p.id !== patientToRemove.id));
-  
-    // After state updates, the useEffect for conflict detection will run again.
-    // If all conflicts are resolved, the modal should close.
-    // We check if the remaining conflicts list will be empty.
+    const newPatients = patients.filter(p => p.id !== patientToRemove.id);
+    updateState({ patients: newPatients, appointments: newAppointments });
+
     const remainingConflicts = dniConflicts.filter(
       pair => pair[0].id !== patientToKeep.id && pair[1].id !== patientToKeep.id &&
               pair[0].id !== patientToRemove.id && pair[1].id !== patientToRemove.id
@@ -1376,7 +1362,7 @@ export default function App() {
     if (remainingConflicts.length === 0) {
       setDniConflictModalOpen(false);
     }
-  }, [dniConflicts]);
+  }, [dniConflicts, patients, appointments, updateState]);
 
 
   const handleOpenScheduleForDay = () => {
@@ -1417,9 +1403,9 @@ export default function App() {
                             const confirmationMessage = `¿Estás seguro de que quieres reemplazar tus ${dataType === 'patients' ? 'pacientes' : 'turnos'} actuales con los datos de este archivo? Esta acción no se puede deshacer.`;
                             if (window.confirm(confirmationMessage)) {
                                 if (dataType === 'patients') {
-                                    setPatients(data as Patient[]);
+                                    updateState({ patients: data as Patient[], appointments });
                                 } else {
-                                    setAppointments(data as Appointment[]);
+                                    updateState({ patients, appointments: data as Appointment[] });
                                 }
                                 alert('Datos importados correctamente.');
                             }
@@ -1493,19 +1479,14 @@ export default function App() {
 
   // Fix: Restructuring the logic to safely access `patientId` by first checking if `editingAppointment` exists. This helps TypeScript's type narrowing and prevents errors on potentially null objects.
   const existingPatientForModal = useMemo((): Patient | null => {
-    // FIX: Restructured to be more robust against type inference failure. By explicitly
-    // checking if editingAppointment exists before accessing its properties, we guide
-    // TypeScript's type narrowing and resolve the inference error on `patientId`.
-    if (editingAppointment) {
-      // FIX: Extracted `patientId` to a const to help TypeScript's type inference within the
-      // `.find()` callback, resolving an issue where `editingAppointment` was treated as `unknown`.
-      // FIX: Use a type assertion to address a persistent TypeScript inference issue where `editingAppointment` is incorrectly typed as `unknown`.
-      const patientId = (editingAppointment as AppointmentWithDetails).patientId;
-      // FIX: Explicitly typing `p` as `Patient` resolves the TypeScript inference error where `p.id` was inaccessible.
-      const patient = patients.find((p: Patient) => p.id === patientId);
-      return patient || null;
+    // FIX: Resolved a TypeScript inference error. By checking for a null `editingAppointment` first and then
+    // casting it, we ensure its type is correctly inferred as `AppointmentWithDetails` for subsequent use.
+    if (!editingAppointment) {
+      return null;
     }
-    return null;
+    const currentAppointment = editingAppointment as AppointmentWithDetails;
+    const patient = patients.find((p: Patient) => p.id === currentAppointment.patientId);
+    return patient || null;
   }, [editingAppointment, patients]);
 
   return (
@@ -1513,6 +1494,14 @@ export default function App() {
       <header className="flex flex-wrap justify-between items-center mb-6 gap-4 flex-shrink-0">
         <h1 className="text-3xl font-bold text-cyan-400">Consultorio Virtual</h1>
         <div className="flex items-center flex-wrap gap-3">
+            <div className="flex items-center gap-1">
+                <button onClick={handleUndo} disabled={!canUndo} title="Deshacer (Ctrl+Z)" className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" /></svg>
+                </button>
+                 <button onClick={handleRedo} disabled={!canRedo} title="Rehacer (Ctrl+Y)" className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                </button>
+            </div>
             <div ref={patientSearchRef} className="relative w-64">
                  <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
