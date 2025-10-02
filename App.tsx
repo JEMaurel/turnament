@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
@@ -239,7 +241,12 @@ const AppointmentModal: React.FC<{
     );
 };
 
-const PatientRegistryModal: React.FC<{isOpen: boolean; onClose: () => void; patients: Patient[]}> = ({ isOpen, onClose, patients }) => {
+const PatientRegistryModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  patients: Patient[];
+  onDeletePatient: (patientId: string) => void;
+}> = ({ isOpen, onClose, patients, onDeletePatient }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
@@ -307,13 +314,28 @@ const PatientRegistryModal: React.FC<{isOpen: boolean; onClose: () => void; pati
                                 {filteredPatients.map(patient => (
                                     <li 
                                         key={patient.id} 
-                                        className="p-3 bg-slate-700 rounded-md cursor-pointer hover:bg-slate-600 transition-colors"
+                                        className="flex justify-between items-center p-3 bg-slate-700 rounded-md hover:bg-slate-600 transition-colors"
+                                    >
+                                      <span
+                                        className="flex-grow cursor-pointer"
                                         onClick={() => setSelectedPatient(patient)}
                                         role="button"
                                         tabIndex={0}
                                         onKeyPress={(e) => e.key === 'Enter' && setSelectedPatient(patient)}
-                                    >
+                                      >
                                         {patient.name}
+                                      </span>
+                                      <button
+                                          onClick={(e) => {
+                                              e.stopPropagation();
+                                              onDeletePatient(patient.id);
+                                          }}
+                                          className="p-2 text-red-400 rounded-full hover:bg-red-900/50 transition-colors flex-shrink-0 ml-2"
+                                          aria-label={`Eliminar a ${patient.name}`}
+                                          title={`Eliminar a ${patient.name} y todos sus turnos`}
+                                      >
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>
+                                      </button>
                                     </li>
                                 ))}
                             </ul>
@@ -912,32 +934,34 @@ export default function App() {
       let currentAppointments = [...appointments];
 
       // --- ROBUST CHECK FOR SAME NAME, DIFFERENT DNI ---
+      const patientNameLower = patientData.name.toLowerCase().trim();
       const newDni = patientData.dni?.trim() || null;
-      if (patientData.name) {
-          const patientNameLower = patientData.name.toLowerCase().trim();
-          // Find any *other* patient with the same name but a different DNI.
-          const conflictingPatient = currentPatients.find(p => 
-              p.name.toLowerCase().trim() === patientNameLower &&
-              p.id !== patientData.id &&
-              (p.dni?.trim() || null) !== newDni
+      
+      const conflictingPatient = currentPatients.find(p => 
+          p.name.toLowerCase().trim() === patientNameLower &&
+          (p.dni?.trim() || null) !== newDni
+      );
+
+      if (conflictingPatient) {
+          const isEditingThisPatient = conflictingPatient.id === patientData.id;
+          const otherPatientsWithSameName = currentPatients.some(p => 
+              p.name.toLowerCase().trim() === patientNameLower && p.id !== patientData.id
           );
 
-          if (conflictingPatient) {
-              const existingDni = conflictingPatient.dni?.trim() || null;
+          if (isEditingThisPatient || otherPatientsWithSameName || !patientData.id) {
               const confirmation = window.confirm(
-                  `ADVERTENCIA: Ya existe un paciente llamado '${conflictingPatient.name}' pero con un DNI diferente (DNI guardado: ${existingDni || 'N/A'}, DNI nuevo: ${newDni || 'N/A'}).\n\n` +
-                  `¿Confirma que está creando un paciente completamente nuevo y distinto?`
+                  `ADVERTENCIA: Ya existe un paciente llamado '${conflictingPatient.name}' con un DNI diferente.\n\n` +
+                  `Haga clic en 'Aceptar' para crear un NUEVO paciente con este DNI, o 'Cancelar' para no guardar.`
               );
 
-              if (!confirmation) {
-                  return; // Abort save if user cancels, preventing the "blocking" issue.
+              if (confirmation) {
+                  // User confirmed to create a new patient, so we generate a new ID.
+                  const newPatientId = `pat-${Date.now()}`;
+                  patientData.id = newPatientId;
+                  appointmentData.patientId = newPatientId;
+              } else {
+                  return; // User cancelled, so abort the save operation.
               }
-
-              // User confirmed. We must ensure this is treated as a NEW patient.
-              // We generate a new ID to prevent accidentally overwriting the conflicting patient record.
-              const newPatientId = `pat-${Date.now()}`;
-              patientData.id = newPatientId;
-              appointmentData.patientId = newPatientId;
           }
       }
       
@@ -1101,6 +1125,19 @@ export default function App() {
       // FIX: Explicitly typing `a` prevents TypeScript from inferring it as `unknown`.
       const newAppointments = appointments.filter((a: Appointment) => a.id !== appointmentId);
       updateState({ patients, appointments: newAppointments });
+    }
+  }, [patients, appointments, updateState]);
+
+  const handleDeletePatient = useCallback((patientId: string) => {
+    const patientToDelete = patients.find(p => p.id === patientId);
+    if (!patientToDelete) return;
+
+    const confirmMessage = `¡Atención! Esta acción eliminará al paciente '${patientToDelete.name}' y TODOS sus turnos agendados. Esta acción no se puede deshacer.\n\n¿Desea continuar?`;
+    
+    if (window.confirm(confirmMessage)) {
+      const newPatients = patients.filter(p => p.id !== patientId);
+      const newAppointments = appointments.filter(app => app.patientId !== patientId);
+      updateState({ patients: newPatients, appointments: newAppointments });
     }
   }, [patients, appointments, updateState]);
 
@@ -1409,7 +1446,7 @@ export default function App() {
   const handleUnifyConflict = useCallback((patientToKeep: Patient, patientToRemove: Patient) => {
     // FIX: Property 'patientId' does not exist on type 'unknown'.
     // The type for `app` was not being inferred correctly. Explicitly typing it as `Appointment` resolves the issue.
-    const newAppointments = (appointments as Appointment[]).map((app: Appointment) => {
+    const newAppointments = appointments.map((app: Appointment) => {
         if (app.patientId === patientToRemove.id) {
           return { ...app, patientId: patientToKeep.id };
         }
@@ -1547,9 +1584,9 @@ export default function App() {
       return null;
     }
     // FIX: Property 'patientId' does not exist on type 'unknown'.
-    // Type narrowing from the null check is expected to work but appears to be failing.
-    // Casting to AppointmentWithDetails is a workaround to ensure type safety.
-    const patient = patients.find((p: Patient) => p.id === (editingAppointment as AppointmentWithDetails).patientId);
+    // Type narrowing from the null check is not propagating into the callback.
+    // Using a non-null assertion (!) to inform TypeScript that `editingAppointment` is not null here.
+    const patient = patients.find((p: Patient) => p.id === editingAppointment!.patientId);
     return patient || null;
   }, [editingAppointment, patients]);
 
@@ -1696,6 +1733,7 @@ export default function App() {
         isOpen={isPatientRegistryOpen}
         onClose={() => setPatientRegistryOpen(false)}
         patients={patients}
+        onDeletePatient={handleDeletePatient}
       />
       <AiAssistantModal 
         isOpen={isAiModalOpen}
