@@ -912,6 +912,32 @@ export default function App() {
       let currentPatients = [...patients];
       let currentAppointments = [...appointments];
 
+      // --- CHECK FOR SAME NAME, DIFFERENT DNI ---
+      if (patientData.name && trimmedDni) {
+          const existingPatientByName = currentPatients.find(
+              p => p.name.toLowerCase().trim() === patientData.name.toLowerCase().trim()
+          );
+
+          if (existingPatientByName && (existingPatientByName.dni || '').trim() !== trimmedDni) {
+              const confirmation = window.confirm(
+                  `ADVERTENCIA: Ya existe un paciente llamado '${existingPatientByName.name}' con un DNI diferente (${existingPatientByName.dni || 'N/A'}).\n\n` +
+                  `¿Desea crear un nuevo paciente completamente distinto con el DNI ${trimmedDni}?`
+              );
+
+              if (!confirmation) {
+                  return; // Abort save if user cancels
+              }
+
+              // If user confirms, ensure we are creating a NEW patient by giving them a new ID.
+              // This is crucial if the user selected the existing patient and then changed the DNI.
+              if (patientData.id === existingPatientByName.id) {
+                  const newPatientId = `pat-${Date.now()}`;
+                  patientData.id = newPatientId;
+                  appointmentData.patientId = newPatientId;
+              }
+          }
+      }
+
       // --- UNIFICATION LOGIC (for existing appointments only) ---
       // FIX: Added a guard to ensure `editingAppointment` is not null and help TypeScript infer its type correctly.
       if (editingAppointment) {
@@ -1377,7 +1403,9 @@ export default function App() {
   }, [dateForDeletion, selectedPatientId, appointments, patients, updateState]);
 
   const handleUnifyConflict = useCallback((patientToKeep: Patient, patientToRemove: Patient) => {
-    const newAppointments = appointments.map((app: Appointment) => {
+    // FIX: Property 'patientId' does not exist on type 'unknown'.
+    // Explicitly casting `appointments` to `Appointment[]` ensures that `app` is correctly typed inside the map function.
+    const newAppointments = (appointments as Appointment[]).map((app) => {
         if (app.patientId === patientToRemove.id) {
           return { ...app, patientId: patientToKeep.id };
         }
@@ -1510,15 +1538,14 @@ export default function App() {
     }, []);
 
 
-  // Fix: Restructuring the logic to safely access `patientId` by first checking if `editingAppointment` exists. This helps TypeScript's type narrowing and prevents errors on potentially null objects.
   const existingPatientForModal = useMemo((): Patient | null => {
-    // FIX: Resolved a TypeScript inference error. By checking for a null `editingAppointment` first and then
-    // casting it, we ensure its type is correctly inferred as `AppointmentWithDetails` for subsequent use.
     if (!editingAppointment) {
       return null;
     }
-    const currentAppointment = editingAppointment as AppointmentWithDetails;
-    const patient = patients.find((p: Patient) => p.id === currentAppointment.patientId);
+    // FIX: Property 'patientId' does not exist on type 'unknown'.
+    // Directly accessing `patientId` on `editingAppointment` after the null check resolves a TypeScript inference issue.
+    // This relies on type narrowing, which is more robust than casting with `as`.
+    const patient = patients.find((p: Patient) => p.id === editingAppointment.patientId);
     return patient || null;
   }, [editingAppointment, patients]);
 
