@@ -36,6 +36,80 @@ const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; chi
   );
 };
 
+// New Stepper Input Component
+const StepperInput: React.FC<{
+    label: string;
+    value: string;
+    onChange: (newValue: string) => void;
+    separator: string;
+    steps: [number, number];
+}> = ({ label, value, onChange, separator, steps }) => {
+    const [activeIndex, setActiveIndex] = useState(0);
+
+    const handleStep = (direction: 1 | -1) => {
+        const parts = value.split(separator);
+        const numericParts = parts.map(p => parseInt(p, 10) || 0);
+        const step = steps[activeIndex];
+
+        if (separator === ':' && activeIndex === 1) { // Special logic for minutes
+            numericParts[1] = numericParts[1] === 0 ? 30 : 0;
+        } else {
+            numericParts[activeIndex] += direction * step;
+        }
+        
+        // Boundary checks
+        if (separator === ':') { // Time boundaries
+            if (activeIndex === 0) { // Hours
+                if (numericParts[0] > 23) numericParts[0] = 0;
+                if (numericParts[0] < 0) numericParts[0] = 23;
+            }
+        } else { // Session boundaries
+            numericParts[activeIndex] = Math.max(0, numericParts[activeIndex]);
+        }
+        
+        const finalParts = numericParts.map((part, index) => {
+            if (separator === ':') {
+                return String(part).padStart(2, '0');
+            }
+            return String(part);
+        });
+
+        onChange(finalParts.join(separator));
+    };
+
+    const parts = value.split(separator);
+    const part1 = parts[0] || (separator === ':' ? '00' : '0');
+    const part2 = parts[1] || (separator === ':' ? '00' : '0');
+
+    return (
+        <div>
+            <label className="block text-sm font-medium text-slate-300">{label}</label>
+            <div className="flex items-center gap-2 mt-1 w-full bg-slate-700 border border-slate-600 rounded-md p-2 focus-within:ring-2 focus-within:ring-cyan-500 focus-within:border-cyan-500">
+                <div className="flex-grow font-mono text-xl text-center tracking-wider">
+                    <span
+                        onClick={() => setActiveIndex(0)}
+                        className={`cursor-pointer p-1 rounded transition-colors ${activeIndex === 0 ? 'text-cyan-400 bg-slate-900/50' : 'text-white'}`}
+                    >
+                        {part1}
+                    </span>
+                    <span className="text-slate-500 mx-1">{separator}</span>
+                    <span
+                        onClick={() => setActiveIndex(1)}
+                        className={`cursor-pointer p-1 rounded transition-colors ${activeIndex === 1 ? 'text-cyan-400 bg-slate-900/50' : 'text-white'}`}
+                    >
+                        {part2}
+                    </span>
+                </div>
+                <div className="flex flex-col items-center">
+                    <button onClick={() => handleStep(1)} className="px-2 text-slate-300 hover:text-white hover:bg-slate-600 rounded" aria-label="Aumentar valor">▲</button>
+                    <button onClick={() => handleStep(-1)} className="px-2 text-slate-300 hover:text-white hover:bg-slate-600 rounded" aria-label="Disminuir valor">▼</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const AppointmentModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -143,14 +217,20 @@ const AppointmentModal: React.FC<{
             <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                 <h4 className="text-lg font-semibold text-cyan-400 border-b border-slate-700 pb-2">Datos del Turno</h4>
                 <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300">Hora</label>
-                        <input type="time" value={time} onChange={e => setTime(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1 focus:ring-cyan-500 focus:border-cyan-500"/>
-                    </div>
-                     <div>
-                        <label className="block text-sm font-medium text-slate-300">Sesión (ej. 5/10)</label>
-                        <input type="text" value={session} onChange={e => setSession(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1 focus:ring-cyan-500 focus:border-cyan-500"/>
-                    </div>
+                    <StepperInput
+                        label="Hora"
+                        value={time}
+                        onChange={setTime}
+                        separator=":"
+                        steps={[1, 30]}
+                    />
+                    <StepperInput
+                        label="Sesión (ej. 5/10)"
+                        value={session}
+                        onChange={setSession}
+                        separator="/"
+                        steps={[1, 1]}
+                    />
                 </div>
 
                 {!existingAppointment && (
@@ -275,7 +355,7 @@ const PatientRegistryModal: React.FC<{
                 <>
                     <div className="max-h-[60vh] overflow-y-auto pr-2">
                         <button onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 mb-4 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
                             <span>Volver a la lista</span>
                         </button>
                         <div className="space-y-4">
@@ -529,7 +609,7 @@ const DniConflictBanner: React.FC<{
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-amber-500 text-slate-900 p-4 shadow-lg z-40 flex justify-between items-center animate-pulse">
       <div className="flex items-center gap-3">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
         </svg>
         <span className="font-semibold">
@@ -1105,7 +1185,8 @@ export default function App() {
               for (const c of conflicts) {
                   const existing = existingAppointmentsByDateTime.get(`${c.date}|${c.time}`);
                   if (existing) {
-                      const patientName = currentPatients.find(p => p.id === existing.patientId)?.name || 'Desconocido';
+                      // FIX: Property 'patientId' does not exist on type 'unknown'. Cast `existing` from a Map.get() result to the expected `Appointment` type.
+                      const patientName = currentPatients.find(p => p.id === (existing as Appointment).patientId)?.name || 'Desconocido';
                       conflictDetailsList.push(`- ${new Date(c.date + 'T12:00:00').toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit'})} a las ${c.time} con ${patientName}`);
                   }
               }
@@ -1319,7 +1400,7 @@ export default function App() {
             };
         })
         .sort((a, b) => {
-            if (a.date !== b.date) return a.date.localeCompare(b.date);
+            if (a.date !== b.date) return a.date.localeCompare(a.date);
             return a.time.localeCompare(b.time);
         });
 
@@ -1590,9 +1671,9 @@ export default function App() {
     if (!editingAppointment) {
       return null;
     }
-    // FIX: A non-null assertion (`!`) is not sufficient when the type is `unknown`.
-    // An explicit type cast is used to correctly type `editingAppointment`.
-    const patientId = (editingAppointment as AppointmentWithDetails).patientId;
+    // FIX: Property 'patientId' does not exist on type 'unknown'. Explicitly cast `editingAppointment` to resolve incorrect type inference.
+    const appointment = editingAppointment as AppointmentWithDetails;
+    const patientId = appointment.patientId;
     const patient = patients.find((p: Patient) => p.id === patientId);
     return patient || null;
   }, [editingAppointment, patients]);
@@ -1604,15 +1685,15 @@ export default function App() {
         <div className="flex items-center flex-wrap gap-3">
             <div className="flex items-center gap-1">
                 <button onClick={handleUndo} disabled={!canUndo} title="Deshacer (Ctrl+Z)" className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" /></svg>
                 </button>
                  <button onClick={handleRedo} disabled={!canRedo} title="Rehacer (Ctrl+Y)" className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                 </button>
             </div>
             <div ref={patientSearchRef} className="relative w-64">
                  <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
                         <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
                     </svg>
                 </span>
@@ -1642,24 +1723,24 @@ export default function App() {
             </div>
             <div className="flex items-center gap-3 border-l border-slate-700 pl-3">
                 <button onClick={handleExportData} title="Exportar Pacientes y Turnos a JSON" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                     <span className="hidden sm:inline">Exportar</span>
                 </button>
                  <button onClick={() => handleImportData('patients')} title="Importar Pacientes desde JSON" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
                     <span className="hidden sm:inline">Imp. Pacientes</span>
                 </button>
                  <button onClick={() => handleImportData('appointments')} title="Importar Turnos desde JSON" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
                     <span className="hidden sm:inline">Imp. Turnos</span>
                 </button>
             </div>
             <button onClick={() => setPatientRegistryOpen(true)} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0115 11h1c.414 0 .79.122 1.11.325a6.002 6.002 0 015.74 4.901A1 1 0 0121.82 18H15.07a3.001 3.001 0 01-2.14 2H10a1 1 0 01-1-1v-1a1 1 0 011-1h2.071a3.001 3.001 0 01-.141-1z" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0115 11h1c.414 0 .79.122 1.11.325a6.002 6.002 0 015.74 4.901A1 1 0 0121.82 18H15.07a3.001 3.001 0 01-2.14 2H10a1 1 0 01-1-1v-1a1 1 0 011-1h2.071a3.001 3.001 0 01-.141-1z" /></svg>
                 <span>Pacientes</span>
             </button>
             <button onClick={() => setAiModalOpen(true)} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>
                 <span>Asistente IA</span>
             </button>
         </div>
