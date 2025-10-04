@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
@@ -11,6 +12,13 @@ interface DaySchedule {
   times: string[];
 }
 type WeekSchedule = (DaySchedule | null)[];
+// New type for monthly grouping
+interface MonthlySchedule {
+    month: string;
+    year: number;
+    weeks: WeekSchedule[];
+}
+
 
 // Type for the state snapshot
 interface AppState {
@@ -327,11 +335,14 @@ const PatientRegistryModal: React.FC<{
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
     const filteredPatients = useMemo(() => {
-        if (!searchTerm) {
+        const trimmedSearch = searchTerm.trim();
+        if (!trimmedSearch) {
             return patients;
         }
+        const lowerCaseSearchTerm = trimmedSearch.toLowerCase();
         return patients.filter(patient =>
-            patient && patient.name && patient.name.toLowerCase().includes(searchTerm.toLowerCase())
+            (patient?.name && patient.name.toLowerCase().includes(lowerCaseSearchTerm)) ||
+            (patient?.dni && patient.dni === trimmedSearch)
         );
     }, [patients, searchTerm]);
     
@@ -392,7 +403,7 @@ const PatientRegistryModal: React.FC<{
                         </span>
                         <input
                             type="text"
-                            placeholder="Buscar paciente..."
+                            placeholder="Buscar paciente por nombre o DNI..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 pl-10 pr-4 focus:ring-cyan-500 focus:border-cyan-500"
@@ -542,7 +553,7 @@ const RecurringSlotsViewer: React.FC<{
 
 const PatientScheduleViewer: React.FC<{
   patientName: string;
-  schedule: WeekSchedule[];
+  schedule: MonthlySchedule[];
   onClose: () => void;
 }> = ({ patientName, schedule, onClose }) => {
   const WEEK_DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -566,30 +577,37 @@ const PatientScheduleViewer: React.FC<{
 
       <div className="flex-grow overflow-y-auto no-scrollbar pr-2 space-y-1">
         {schedule.length > 0 ? (
-            schedule.map((week, weekIndex) => (
-                <div key={weekIndex} className="grid grid-cols-7 gap-1 min-h-[4rem]">
-                    {week.map((day, dayIndex) => {
-                        const isWeekend = dayIndex >= 5;
-                        return (
-                            <div key={dayIndex} className={`p-1 rounded-md transition-colors ${isWeekend ? 'bg-slate-900/50' : 'bg-slate-700/50'}`}>
-                                {day && day.times.length > 0 && (
-                                    <>
-                                        <span className="text-xs font-bold text-slate-500 flex justify-center items-center h-4 w-4 rounded-full bg-slate-800/50 mx-auto mb-1">
-                                            {day.date.getDate()}
-                                        </span>
-                                        <div className="space-y-1 text-center">
-                                            {day.times.map(time => (
-                                                <div key={time} className="bg-indigo-500 text-white text-base font-bold rounded px-2 py-1 whitespace-nowrap">
-                                                    {time}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
+            schedule.map((monthly) => (
+              <div key={`${monthly.year}-${monthly.month}`}>
+                <h4 className="text-lg font-bold text-center text-cyan-400 capitalize my-2">
+                  {monthly.month} {monthly.year}
+                </h4>
+                {monthly.weeks.map((week, weekIndex) => (
+                  <div key={weekIndex} className="grid grid-cols-7 gap-1 min-h-[4rem]">
+                      {week.map((day, dayIndex) => {
+                          const isWeekend = dayIndex >= 5;
+                          return (
+                              <div key={dayIndex} className={`p-1 rounded-md transition-colors ${isWeekend ? 'bg-slate-900/50' : 'bg-slate-700/50'}`}>
+                                  {day && day.times.length > 0 && (
+                                      <>
+                                          <span className="text-xs font-bold text-slate-500 flex justify-center items-center h-4 w-4 rounded-full bg-slate-800/50 mx-auto mb-1">
+                                              {day.date.getDate()}
+                                          </span>
+                                          <div className="space-y-1 text-center">
+                                              {day.times.map(time => (
+                                                  <div key={time} className="bg-indigo-500 text-white text-base font-bold rounded px-2 py-1 whitespace-nowrap">
+                                                      {time}
+                                                  </div>
+                                              ))}
+                                          </div>
+                                      </>
+                                  )}
+                              </div>
+                          );
+                      })}
+                  </div>
+                ))}
+              </div>
             ))
         ) : (
              <p className="text-center text-slate-400 pt-8">
@@ -875,11 +893,10 @@ export default function App() {
     return patients.find(p => p.id === selectedPatientId)?.name || 'Desconocido';
   }, [selectedPatientId, patients]);
 
-  const highlightedPatientSchedule = useMemo((): WeekSchedule[] => {
+  const highlightedPatientSchedule = useMemo((): MonthlySchedule[] => {
     if (!selectedPatientId) return [];
 
     const patientAppointments = appointments
-        // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
         .filter((app: Appointment) => app.patientId === selectedPatientId)
         .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
     
@@ -905,10 +922,39 @@ export default function App() {
         (weekSchedule[dayIndex] as DaySchedule).times.push(app.time);
     }
     
-    // Sort weeks by Monday's date and return as an array
-    return Array.from(weeksMap.entries())
+    const sortedWeeks = Array.from(weeksMap.entries())
         .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(entry => entry[1]);
+        .map(([mondayString, week]) => ({ mondayString, week }));
+
+    const monthlySchedules: MonthlySchedule[] = [];
+    if (sortedWeeks.length === 0) return [];
+
+    let currentMonth = -1;
+    let currentYear = -1;
+    
+    for (const { mondayString, week } of sortedWeeks) {
+        // Find the first day with an appointment to correctly identify the week's month,
+        // especially for weeks spanning two months.
+        const firstDayInWeek = week.find(d => d !== null) as DaySchedule | undefined;
+        // If no appointments this week (shouldn't happen with this logic but as a fallback), use Monday.
+        const representativeDate = firstDayInWeek ? firstDayInWeek.date : new Date(`${mondayString}T12:00:00`);
+        
+        const month = representativeDate.getMonth();
+        const year = representativeDate.getFullYear();
+
+        if (month !== currentMonth || year !== currentYear) {
+            currentMonth = month;
+            currentYear = year;
+            monthlySchedules.push({
+                month: representativeDate.toLocaleString('es-ES', { month: 'long' }),
+                year: year,
+                weeks: []
+            });
+        }
+        monthlySchedules[monthlySchedules.length - 1].weeks.push(week);
+    }
+
+    return monthlySchedules;
 
   }, [selectedPatientId, appointments]);
 
@@ -920,11 +966,16 @@ export default function App() {
 
   // Patient Search Results
   const filteredPatientsForSearch = useMemo(() => {
-      if (patientSearchTerm.length < 2) {
+      const trimmedSearch = patientSearchTerm.trim();
+      if (!trimmedSearch) {
           return [];
       }
+      const lowerCaseSearchTerm = trimmedSearch.toLowerCase();
       return patients
-          .filter(p => p && p.name && p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()))
+          .filter(p => 
+            (p?.name && p.name.toLowerCase().includes(lowerCaseSearchTerm)) ||
+            (p?.dni && p.dni === trimmedSearch)
+          )
           .slice(0, 5); // Limit results to 5
   }, [patientSearchTerm, patients]);
 
@@ -1134,8 +1185,6 @@ export default function App() {
           let newAppointments: Appointment[] = [];
           
           if (recurringDays.length > 0 && selectedDate && recurringWeeks >= 0) {
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
               const startWeekMonday = getMonday(selectedDate);
               const totalDaysToScan = (recurringWeeks + 1) * 7;
 
@@ -1143,7 +1192,7 @@ export default function App() {
                   const potentialDate = new Date(startWeekMonday);
                   potentialDate.setDate(startWeekMonday.getDate() + i);
 
-                  if (recurringDays.includes(potentialDate.getDay()) && potentialDate >= today) {
+                  if (recurringDays.includes(potentialDate.getDay())) {
                       newAppointments.push({
                           ...appointmentData,
                           id: `app-${Date.now()}-${potentialDate.toISOString()}-${i}`,
@@ -1152,12 +1201,7 @@ export default function App() {
                   }
               }
           } else {
-              const appointmentDate = new Date(`${appointmentData.date}T12:00:00`);
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              if (appointmentDate >= today) {
-                  newAppointments.push(appointmentData);
-              }
+              newAppointments.push(appointmentData);
           }
 
           if (newAppointments.length > 1) {
@@ -1418,7 +1462,8 @@ export default function App() {
         for (const c of conflicts) {
             const existing = existingAppointmentsByDateTime.get(`${c.date}|${c.time}`);
             if (existing) {
-                const patientName = patients.find(p => p.id === existing.patientId)?.name || 'Desconocido';
+                // FIX: Property 'patientId' does not exist on type 'unknown'. Cast `existing` from a Map.get() result to the expected `Appointment` type.
+                const patientName = patients.find(p => p.id === (existing as Appointment).patientId)?.name || 'Desconocido';
                 conflictDetailsList.push(`- ${new Date(c.date + 'T12:00:00').toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit'})} a las ${c.time} con ${patientName}`);
             }
         }
@@ -1507,7 +1552,8 @@ export default function App() {
         for (const c of conflicts) {
             const existing = existingAppointmentsByDateTime.get(`${c.date}|${c.time}`);
             if (existing) {
-                const patientName = patients.find(p => p.id === existing.patientId)?.name || 'Desconocido';
+                // FIX: Property 'patientId' does not exist on type 'unknown'. Cast `existing` from a Map.get() result to the expected `Appointment` type.
+                const patientName = patients.find(p => p.id === (existing as Appointment).patientId)?.name || 'Desconocido';
                 conflictDetailsList.push(`- ${new Date(c.date + 'T12:00:00').toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit'})} a las ${c.time} con ${patientName}`);
             }
         }
@@ -1672,8 +1718,7 @@ export default function App() {
       return null;
     }
     // FIX: Property 'patientId' does not exist on type 'unknown'. Explicitly cast `editingAppointment` to resolve incorrect type inference.
-    const appointment = editingAppointment as AppointmentWithDetails;
-    const patientId = appointment.patientId;
+    const patientId = (editingAppointment as AppointmentWithDetails).patientId;
     const patient = patients.find((p: Patient) => p.id === patientId);
     return patient || null;
   }, [editingAppointment, patients]);
@@ -1699,7 +1744,7 @@ export default function App() {
                 </span>
                 <input
                     type="text"
-                    placeholder="Buscar y ubicar paciente..."
+                    placeholder="Buscar paciente por nombre o DNI..."
                     value={patientSearchTerm}
                     onChange={e => setPatientSearchTerm(e.target.value)}
                     className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 pl-10 pr-4 focus:ring-cyan-500 focus:border-cyan-500"
