@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
 // FIX: Imported the centralized AppointmentWithDetails type to ensure type consistency.
@@ -556,14 +556,35 @@ const PatientScheduleViewer: React.FC<{
   schedule: MonthlySchedule[];
   onClose: () => void;
   onAppointmentClick: (date: Date) => void;
-}> = ({ patientName, schedule, onClose, onAppointmentClick }) => {
+  currentDate: Date;
+}> = ({ patientName, schedule, onClose, onAppointmentClick, currentDate }) => {
   const WEEK_DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const monthRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  useLayoutEffect(() => {
+    if (schedule.length > 0 && scrollContainerRef.current) {
+      const targetYear = currentDate.getFullYear();
+      const targetMonthName = currentDate.toLocaleString('es-ES', { month: 'long' });
+      const targetKey = `${targetYear}-${targetMonthName}`;
+      
+      const targetElement = monthRefs.current.get(targetKey);
+
+      if (targetElement) {
+        targetElement.scrollIntoView({
+          behavior: 'auto',
+          block: 'start',
+        });
+      }
+    }
+  }, [schedule, currentDate]);
+
 
   return (
     <div className="p-4 bg-slate-800 rounded-lg shadow-lg relative h-full flex flex-col">
        <button 
         onClick={onClose} 
-        className="absolute top-2 right-2 text-slate-400 hover:text-white z-10 p-1 text-2xl"
+        className="absolute top-2 right-2 text-slate-400 hover:text-white z-20 p-1 text-2xl"
         aria-label="Cerrar vista de horarios del paciente"
       >
         &times;
@@ -576,44 +597,53 @@ const PatientScheduleViewer: React.FC<{
         {WEEK_DAYS.map(day => <div key={day}>{day}</div>)}
       </div>
 
-      <div className="flex-grow overflow-y-auto no-scrollbar pr-2 space-y-1">
+      <div ref={scrollContainerRef} className="flex-grow overflow-y-auto no-scrollbar pr-2 space-y-1">
         {schedule.length > 0 ? (
-            schedule.map((monthly) => (
-              <div key={`${monthly.year}-${monthly.month}`}>
-                <h4 className="text-lg font-bold text-center text-cyan-400 capitalize my-2">
-                  {monthly.month} {monthly.year}
-                </h4>
-                {monthly.weeks.map((week, weekIndex) => (
-                  <div key={weekIndex} className="grid grid-cols-7 gap-1 min-h-[4rem]">
-                      {week.map((day, dayIndex) => {
-                          const isWeekend = dayIndex >= 5;
-                          return (
-                              <div key={dayIndex} className={`p-1 rounded-md transition-colors ${isWeekend ? 'bg-slate-900/50' : 'bg-slate-700/50'}`}>
-                                  {day && day.times.length > 0 && (
-                                      <>
-                                          <span className="text-xs font-bold text-slate-500 flex justify-center items-center h-4 w-4 rounded-full bg-slate-800/50 mx-auto mb-1">
-                                              {day.date.getDate()}
-                                          </span>
-                                          <div className="space-y-1 text-center">
-                                              {day.times.map(time => (
-                                                  <button
-                                                      key={time}
-                                                      onClick={() => day && onAppointmentClick(day.date)}
-                                                      className="w-full bg-indigo-500 hover:bg-indigo-400 text-white text-base font-bold rounded px-2 py-1 whitespace-nowrap transition-colors text-center"
-                                                  >
-                                                      {time}
-                                                  </button>
-                                              ))}
-                                          </div>
-                                      </>
-                                  )}
-                              </div>
-                          );
-                      })}
-                  </div>
-                ))}
-              </div>
-            ))
+            schedule.map((monthly) => {
+              const monthKey = `${monthly.year}-${monthly.month}`;
+              return (
+                <div 
+                  key={monthKey}
+                  ref={(el) => {
+                    if (el) monthRefs.current.set(monthKey, el);
+                    else monthRefs.current.delete(monthKey);
+                  }}
+                >
+                  <h4 className="text-lg font-bold text-center text-cyan-400 capitalize my-2 sticky top-0 bg-slate-800 py-1 z-10">
+                    {monthly.month} {monthly.year}
+                  </h4>
+                  {monthly.weeks.map((week, weekIndex) => (
+                    <div key={weekIndex} className="grid grid-cols-7 gap-1 min-h-[4rem]">
+                        {week.map((day, dayIndex) => {
+                            const isWeekend = dayIndex >= 5;
+                            return (
+                                <div key={dayIndex} className={`p-1 rounded-md transition-colors ${isWeekend ? 'bg-slate-900/50' : 'bg-slate-700/50'}`}>
+                                    {day && day.times.length > 0 && (
+                                        <>
+                                            <span className="text-xs font-bold text-slate-500 flex justify-center items-center h-4 w-4 rounded-full bg-slate-800/50 mx-auto mb-1">
+                                                {day.date.getDate()}
+                                            </span>
+                                            <div className="space-y-1 text-center">
+                                                {day.times.map(time => (
+                                                    <button
+                                                        key={time}
+                                                        onClick={() => day && onAppointmentClick(day.date)}
+                                                        className="w-full bg-indigo-500 hover:bg-indigo-400 text-white text-base font-bold rounded px-2 py-1 whitespace-nowrap transition-colors text-center"
+                                                    >
+                                                        {time}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                  ))}
+                </div>
+              );
+            })
         ) : (
              <p className="text-center text-slate-400 pt-8">
                 Este paciente no tiene turnos agendados.
@@ -1832,6 +1862,7 @@ export default function App() {
                     schedule={highlightedPatientSchedule}
                     onClose={() => setSelectedPatientId(null)}
                     onAppointmentClick={handleAppointmentClickFromViewer}
+                    currentDate={currentDate}
                   />
               ) : recurringSlotsView ? (
                   <RecurringSlotsViewer 
