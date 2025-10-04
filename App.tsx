@@ -744,6 +744,55 @@ const DniConflictModal: React.FC<{
   );
 };
 
+const StorageIndicator: React.FC<{
+  usedBytes: number;
+  maxBytes: number;
+  percentage: number;
+}> = ({ usedBytes, maxBytes, percentage }) => {
+  const usedMB = (usedBytes / (1024 * 1024)).toFixed(2);
+  const maxMB = (maxBytes / (1024 * 1024)).toFixed(1);
+  const barColor =
+    percentage > 90 ? 'bg-red-600' :
+    percentage > 75 ? 'bg-amber-500' :
+    'bg-green-500';
+
+  return (
+    <div className="w-48 bg-slate-700 p-2 rounded-lg" title={`Usando ${usedMB} MB de ${maxMB} MB`}>
+      <div className="flex justify-between items-center text-xs text-slate-400 mb-1">
+        <span>Almacenamiento Local</span>
+        <span>{percentage.toFixed(0)}%</span>
+      </div>
+      <div className="w-full bg-slate-800 rounded-full h-2.5">
+        <div
+          className={`${barColor} h-2.5 rounded-full transition-all duration-500`}
+          style={{ width: `${percentage}%` }}
+        ></div>
+      </div>
+    </div>
+  );
+};
+
+const StorageWarningBanner: React.FC<{ onClose: () => void, onExport: () => void }> = ({ onClose, onExport }) => {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-red-600 text-white p-4 shadow-lg z-40 flex justify-between items-center animate-pulse">
+      <div className="flex items-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
+          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+        <span className="font-semibold">
+          ¡Atención! El almacenamiento local está casi lleno. Se recomienda exportar una copia de seguridad.
+        </span>
+      </div>
+      <div className="flex items-center gap-4">
+        <button onClick={onExport} className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+          Exportar ahora
+        </button>
+        <button onClick={onClose} className="text-2xl hover:text-slate-200" aria-label="Cerrar advertencia">&times;</button>
+      </div>
+    </div>
+  );
+};
+
 
 // Helper function to get the Monday of a given date
 const getMonday = (d: Date): Date => {
@@ -839,11 +888,34 @@ export default function App() {
   // DNI Conflict State
   const [dniConflicts, setDniConflicts] = useState<[Patient, Patient][]>([]);
   const [isDniConflictModalOpen, setDniConflictModalOpen] = useState(false);
+  const [showStorageWarning, setShowStorageWarning] = useState(false);
 
   // Patient Search State
   const [patientSearchTerm, setPatientSearchTerm] = useState('');
   const patientSearchRef = useRef<HTMLDivElement>(null);
 
+  // Storage Usage Calculation
+  const storageUsage = useMemo(() => {
+    const MAX_STORAGE_BYTES = 5 * 1024 * 1024; // 5 MB
+    try {
+        const patientsStr = JSON.stringify(patients);
+        const appointmentsStr = JSON.stringify(appointments);
+        // Using Blob size for a more accurate byte count
+        const usedBytes = new Blob([patientsStr, appointmentsStr]).size;
+        const percentage = (usedBytes / MAX_STORAGE_BYTES) * 100;
+        return { usedBytes, maxBytes: MAX_STORAGE_BYTES, percentage };
+    } catch (e) {
+        console.error("Could not calculate storage usage:", e);
+        return { usedBytes: 0, maxBytes: MAX_STORAGE_BYTES, percentage: 0 };
+    }
+  }, [patients, appointments]);
+
+  // Effect to show storage warning
+  useEffect(() => {
+      if (storageUsage.percentage > 90) {
+          setShowStorageWarning(true);
+      }
+  }, [storageUsage.percentage]);
 
   // Effect to detect DNI conflicts
   useEffect(() => {
@@ -1808,6 +1880,7 @@ export default function App() {
                 )}
             </div>
             <div className="flex items-center gap-3 border-l border-slate-700 pl-3">
+                <StorageIndicator {...storageUsage} />
                 <button onClick={handleExportData} title="Exportar Pacientes y Turnos a JSON" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                     <span className="hidden sm:inline">Exportar</span>
@@ -1945,6 +2018,9 @@ export default function App() {
           conflictCount={dniConflicts.length}
           onResolve={() => setDniConflictModalOpen(true)}
         />
+      )}
+      {showStorageWarning && (
+        <StorageWarningBanner onClose={() => setShowStorageWarning(false)} onExport={handleExportData} />
       )}
     </div>
   );
