@@ -555,7 +555,8 @@ const PatientScheduleViewer: React.FC<{
   patientName: string;
   schedule: MonthlySchedule[];
   onClose: () => void;
-}> = ({ patientName, schedule, onClose }) => {
+  onAppointmentClick: (date: Date) => void;
+}> = ({ patientName, schedule, onClose, onAppointmentClick }) => {
   const WEEK_DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
   return (
@@ -595,9 +596,13 @@ const PatientScheduleViewer: React.FC<{
                                           </span>
                                           <div className="space-y-1 text-center">
                                               {day.times.map(time => (
-                                                  <div key={time} className="bg-indigo-500 text-white text-base font-bold rounded px-2 py-1 whitespace-nowrap">
+                                                  <button
+                                                      key={time}
+                                                      onClick={() => day && onAppointmentClick(day.date)}
+                                                      className="w-full bg-indigo-500 hover:bg-indigo-400 text-white text-base font-bold rounded px-2 py-1 whitespace-nowrap transition-colors text-center"
+                                                  >
                                                       {time}
-                                                  </div>
+                                                  </button>
                                               ))}
                                           </div>
                                       </>
@@ -1712,6 +1717,12 @@ export default function App() {
         };
     }, []);
 
+  const handleAppointmentClickFromViewer = useCallback((date: Date) => {
+    setCurrentDate(new Date(date));
+    setSelectedDate(new Date(date));
+    setSelectedPatientId(null);
+  }, []);
+
 
   const existingPatientForModal = useMemo((): Patient | null => {
     if (!editingAppointment) {
@@ -1820,6 +1831,7 @@ export default function App() {
                     patientName={highlightedPatientName}
                     schedule={highlightedPatientSchedule}
                     onClose={() => setSelectedPatientId(null)}
+                    onAppointmentClick={handleAppointmentClickFromViewer}
                   />
               ) : recurringSlotsView ? (
                   <RecurringSlotsViewer 
