@@ -33,7 +33,7 @@ const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; chi
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center" onClick={onClose}>
-      <div className="bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-2xl mx-4" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
           <h3 className="text-2xl font-bold text-white">{title}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-white">&times;</button>
@@ -140,7 +140,7 @@ const AppointmentModal: React.FC<{
     const [diagnosis, setDiagnosis] = useState('');
     const [observations, setObservations] = useState('');
     const [recurringDays, setRecurringDays] = useState<number[]>([]);
-    const [recurringWeeks, setRecurringWeeks] = useState(5);
+    const [recurringWeeks, setRecurringWeeks] = useState(3);
     const observationsInputRef = useRef<HTMLTextAreaElement>(null);
     
     useEffect(() => {
@@ -173,7 +173,7 @@ const AppointmentModal: React.FC<{
                 setDiagnosis('');
                 setObservations('');
                 setRecurringDays([]);
-                setRecurringWeeks(5);
+                setRecurringWeeks(3);
             }
         }
     }, [existingAppointment, existingPatient, isOpen, defaultTime]);
@@ -298,7 +298,7 @@ const AppointmentModal: React.FC<{
                 
                 <div>
                     <label className="block text-sm font-medium text-slate-300">Tratamiento</label>
-                    <input type="text" value={treatment} onChange={e => setTreatment(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
+                    <textarea value={treatment} onChange={e => setTreatment(e.target.value)} rows={2} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"></textarea>
                 </div>
 
                 <div>
@@ -313,7 +313,7 @@ const AppointmentModal: React.FC<{
 
                  <div>
                     <label className="block text-sm font-medium text-slate-300">Observaciones (Obs)</label>
-                    <textarea ref={observationsInputRef} value={observations} onChange={e => setObservations(e.target.value)} rows={3} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
+                    <textarea ref={observationsInputRef} value={observations} onChange={e => setObservations(e.target.value)} rows={2} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                 </div>
 
             </div>
