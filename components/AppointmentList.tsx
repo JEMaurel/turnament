@@ -9,6 +9,7 @@ interface AppointmentListProps {
   onDeleteAppointment: (appointmentId: string) => void;
   onAddNewAppointment: (time?: string) => void;
   onHighlightPatient: (patientId: string) => void;
+  recurringAvailableSlots?: string[];
 }
 
 const AppointmentRow: React.FC<{ 
@@ -71,7 +72,11 @@ const AppointmentRow: React.FC<{
   );
 };
 
-const EmptySlotRow: React.FC<{time: string; onAddNewAppointment: (time: string) => void}> = ({ time, onAddNewAppointment }) => (
+const EmptySlotRow: React.FC<{
+  time: string; 
+  onAddNewAppointment: (time: string) => void;
+  isRecurringAvailable: boolean;
+}> = ({ time, onAddNewAppointment, isRecurringAvailable }) => (
     <div
         className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center p-2 bg-slate-800/50 rounded-lg border-2 border-dashed border-slate-700 hover:border-cyan-500 hover:bg-slate-700/50 cursor-pointer transition-all"
         onClick={() => onAddNewAppointment(time)}
@@ -79,7 +84,19 @@ const EmptySlotRow: React.FC<{time: string; onAddNewAppointment: (time: string) 
         aria-label={`Agendar turno a las ${time}`}
     >
         <div className="font-mono text-lg text-slate-500">{time}</div>
-        <div className="text-slate-400 col-span-2">Disponible</div>
+        <div className="text-slate-400">Disponible</div>
+        <div className="flex items-center gap-3">
+          {isRecurringAvailable && (
+              <button
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-1 rounded-full"
+                  aria-label={`Horario recurrente disponible a las ${time}`}
+                  title="Este horario suele estar disponible todas las semanas en este día."
+              >
+                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+              </button>
+          )}
+        </div>
         <div className="flex justify-end">
              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
         </div>
@@ -88,7 +105,7 @@ const EmptySlotRow: React.FC<{time: string; onAddNewAppointment: (time: string) 
 
 type ScheduledItem = { type: 'filled'; data: AppointmentWithDetails } | { type: 'empty'; time: string };
 
-const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient }) => {
+const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient, recurringAvailableSlots = [] }) => {
 
   // FIX: Using a `for...of` loop to build the schedule. This resolves a subtle
   // TypeScript inference issue where the previous `map/filter` approach caused `item.data`
@@ -157,11 +174,13 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
                 />
               );
             } else {
+              const isRecurring = recurringAvailableSlots.includes(item.time);
               return (
                 <EmptySlotRow
                   key={item.time}
                   time={item.time}
                   onAddNewAppointment={onAddNewAppointment}
+                  isRecurringAvailable={isRecurring}
                 />
               );
             }

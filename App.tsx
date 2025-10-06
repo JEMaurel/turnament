@@ -1963,6 +1963,7 @@ export default function App() {
             onDeleteAppointment={handleDeleteAppointment}
             onAddNewAppointment={handleOpenNewAppointment}
             onHighlightPatient={handleHighlightPatient}
+            recurringAvailableSlots={recurringSlotsView && selectedDate && recurringSlotsView.date.toISOString().split('T')[0] === selectedDate.toISOString().split('T')[0] ? recurringSlotsView.slots : []}
           />
         </div>
       </main>
