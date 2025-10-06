@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
@@ -884,6 +883,7 @@ export default function App() {
   
   // New state for recurring slots viewer
   const [recurringSlotsView, setRecurringSlotsView] = useState<{ date: Date; slots: string[] } | null>(null);
+  const [recurringHighlightDays, setRecurringHighlightDays] = useState<string[]>([]);
 
   // DNI Conflict State
   const [dniConflicts, setDniConflicts] = useState<[Patient, Patient][]>([]);
@@ -1128,6 +1128,7 @@ export default function App() {
   }, [appointments]);
 
   const handleDateClick = useCallback((date: Date) => {
+    setRecurringHighlightDays([]); // Clear green highlights on any date click
     const dateString = date.toISOString().split('T')[0];
 
     if (selectedPatientId && highlightedPatientDays.includes(dateString)) {
@@ -1159,6 +1160,38 @@ export default function App() {
 
   }, [selectedPatientId, highlightedPatientDays, recurringSlotsView, calculateRecurringSlots]);
   
+  const isSlotRecurring = useCallback((time: string, dateForDayOfWeek: Date): boolean => {
+    const searchWeeks = 12;
+    const appointmentsLookup = new Set(
+        appointments.map((app: Appointment) => `${app.date}|${app.time}`)
+    );
+    for (let week = 0; week < searchWeeks; week++) {
+        const dateToCheck = new Date(dateForDayOfWeek);
+        dateToCheck.setDate(dateToCheck.getDate() + (week * 7));
+        const dateString = dateToCheck.toISOString().split('T')[0];
+        if (appointmentsLookup.has(`${dateString}|${time}`)) {
+            return false;
+        }
+    }
+    return true;
+  }, [appointments]);
+
+  const handleShowRecurringWeekAvailability = useCallback((time: string, baseDate: Date) => {
+    const monday = getMonday(baseDate);
+    const availableDays: string[] = [];
+
+    for (let i = 0; i < 7; i++) {
+        const dayToCheck = new Date(monday);
+        dayToCheck.setDate(monday.getDate() + i);
+        if (isSlotRecurring(time, dayToCheck)) {
+            availableDays.push(dayToCheck.toISOString().split('T')[0]);
+        }
+    }
+    setRecurringHighlightDays(availableDays);
+    setSelectedPatientId(null);
+    setRecurringSlotsView(null);
+  }, [isSlotRecurring]);
+
   // FIX: Updated handler to use the centralized AppointmentWithDetails type.
   const handleSelectAppointment = useCallback((appointment: AppointmentWithDetails) => {
       setSelectedPatientId(appointment.patientId);
@@ -1169,6 +1202,7 @@ export default function App() {
   const handleHighlightPatient = useCallback((patientId: string) => {
     setSelectedPatientId(prevId => (prevId === patientId ? null : patientId));
     setRecurringSlotsView(null); // Close recurring view when highlighting
+    setRecurringHighlightDays([]); // Clear green highlights
   }, []);
 
   const handleOpenNewAppointment = useCallback((time?: string) => {
@@ -1913,6 +1947,7 @@ export default function App() {
               selectedDate={selectedDate}
               onDateClick={handleDateClick}
               highlightedDays={highlightedPatientDays}
+              recurringHighlightDays={recurringHighlightDays}
               onMonthChange={setCurrentDate}
             />
           </div>
@@ -1923,6 +1958,7 @@ export default function App() {
                 selectedDate={selectedDate}
                 onDateClick={handleDateClick}
                 highlightedDays={highlightedPatientDays}
+                recurringHighlightDays={recurringHighlightDays}
                 onMonthChange={() => {}} 
                 weeksToShow={3}
                 showNavigation={false}
@@ -1963,6 +1999,7 @@ export default function App() {
             onDeleteAppointment={handleDeleteAppointment}
             onAddNewAppointment={handleOpenNewAppointment}
             onHighlightPatient={handleHighlightPatient}
+            onShowRecurringWeekAvailability={handleShowRecurringWeekAvailability}
             recurringAvailableSlots={recurringSlotsView && selectedDate && recurringSlotsView.date.toISOString().split('T')[0] === selectedDate.toISOString().split('T')[0] ? recurringSlotsView.slots : []}
           />
         </div>

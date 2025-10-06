@@ -5,6 +5,7 @@ interface CalendarProps {
   selectedDate: Date | null;
   onDateClick: (date: Date) => void;
   highlightedDays: string[];
+  recurringHighlightDays?: string[];
   onMonthChange: (newDate: Date) => void;
   weeksToShow?: number;
   showNavigation?: boolean;
@@ -17,6 +18,7 @@ const Calendar: React.FC<CalendarProps> = ({
   selectedDate, 
   onDateClick, 
   highlightedDays, 
+  recurringHighlightDays = [],
   onMonthChange,
   weeksToShow = 6,
   showNavigation = true
@@ -99,6 +101,7 @@ const Calendar: React.FC<CalendarProps> = ({
           const isToday = isSameDay(date, today);
           const isSelected = selectedDate ? isSameDay(date, selectedDate) : false;
           const isHighlighted = highlightedDays.includes(dateString);
+          const isRecurringHighlighted = recurringHighlightDays.includes(dateString);
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
           let cellClasses = 'p-2 rounded-full transition-colors duration-200';
@@ -109,6 +112,8 @@ const Calendar: React.FC<CalendarProps> = ({
             cellClasses += ' cursor-pointer';
             if (isSelected) {
               cellClasses += ' bg-cyan-500 text-white';
+            } else if (isRecurringHighlighted) {
+              cellClasses += ' bg-green-500 text-white';
             } else if (isHighlighted) {
               cellClasses += ' bg-indigo-500 text-white';
             } else if (isToday) {

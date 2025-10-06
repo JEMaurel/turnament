@@ -9,6 +9,7 @@ interface AppointmentListProps {
   onDeleteAppointment: (appointmentId: string) => void;
   onAddNewAppointment: (time?: string) => void;
   onHighlightPatient: (patientId: string) => void;
+  onShowRecurringWeekAvailability: (time: string, date: Date) => void;
   recurringAvailableSlots?: string[];
 }
 
@@ -76,7 +77,8 @@ const EmptySlotRow: React.FC<{
   time: string; 
   onAddNewAppointment: (time: string) => void;
   isRecurringAvailable: boolean;
-}> = ({ time, onAddNewAppointment, isRecurringAvailable }) => (
+  onShowRecurringWeekAvailability: (time: string) => void;
+}> = ({ time, onAddNewAppointment, isRecurringAvailable, onShowRecurringWeekAvailability }) => (
     <div
         className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center p-2 bg-slate-800/50 rounded-lg border-2 border-dashed border-slate-700 hover:border-cyan-500 hover:bg-slate-700/50 cursor-pointer transition-all"
         onClick={() => onAddNewAppointment(time)}
@@ -88,10 +90,13 @@ const EmptySlotRow: React.FC<{
         <div className="flex items-center gap-3">
           {isRecurringAvailable && (
               <button
-                  onClick={(e) => e.stopPropagation()}
-                  className="p-1 rounded-full"
-                  aria-label={`Horario recurrente disponible a las ${time}`}
-                  title="Este horario suele estar disponible todas las semanas en este día."
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShowRecurringWeekAvailability(time);
+                  }}
+                  className="p-1 rounded-full hover:bg-slate-600 transition-colors"
+                  aria-label={`Mostrar disponibilidad semanal para las ${time}`}
+                  title="Mostrar disponibilidad semanal para este horario."
               >
                   <div className="w-4 h-4 bg-green-500 rounded-full"></div>
               </button>
@@ -105,7 +110,7 @@ const EmptySlotRow: React.FC<{
 
 type ScheduledItem = { type: 'filled'; data: AppointmentWithDetails } | { type: 'empty'; time: string };
 
-const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient, recurringAvailableSlots = [] }) => {
+const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient, onShowRecurringWeekAvailability, recurringAvailableSlots = [] }) => {
 
   // FIX: Using a `for...of` loop to build the schedule. This resolves a subtle
   // TypeScript inference issue where the previous `map/filter` approach caused `item.data`
@@ -181,6 +186,11 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
                   time={item.time}
                   onAddNewAppointment={onAddNewAppointment}
                   isRecurringAvailable={isRecurring}
+                  onShowRecurringWeekAvailability={(time) => {
+                    if (selectedDate) {
+                      onShowRecurringWeekAvailability(time, selectedDate);
+                    }
+                  }}
                 />
               );
             }
