@@ -1180,7 +1180,8 @@ export default function App() {
     const monday = getMonday(baseDate);
     const availableDays: string[] = [];
 
-    for (let i = 0; i < 7; i++) {
+    // Iterate from Monday (i=0) to Friday (i=4)
+    for (let i = 0; i < 5; i++) {
         const dayToCheck = new Date(monday);
         dayToCheck.setDate(monday.getDate() + i);
         if (isSlotRecurring(time, dayToCheck)) {
