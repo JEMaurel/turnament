@@ -369,7 +369,7 @@ const PatientRegistryModal: React.FC<{
                             <span>Volver a la lista</span>
                         </button>
                         <div className="space-y-4">
-                            <h3 className="text-3xl font-bold text-white border-b border-slate-700 pb-2">{selectedPatient.name}</h3>
+                            <h3 className="text-3xl font-bold text-amber-300 border-b border-slate-700 pb-2">{selectedPatient.name}</h3>
                             <PatientDetail label="DNI" value={selectedPatient.dni} />
                             <PatientDetail label="Obra Social" value={selectedPatient.insurance} />
                             <PatientDetail label="Médico Derivante" value={selectedPatient.doctor} />
@@ -418,7 +418,7 @@ const PatientRegistryModal: React.FC<{
                                         className="flex justify-between items-center p-3 bg-slate-700 rounded-md hover:bg-slate-600 transition-colors"
                                     >
                                       <span
-                                        className="flex-grow cursor-pointer"
+                                        className="flex-grow cursor-pointer font-semibold text-amber-300"
                                         onClick={() => setSelectedPatient(patient)}
                                         role="button"
                                         tabIndex={0}
