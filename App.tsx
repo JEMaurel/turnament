@@ -1200,11 +1200,33 @@ export default function App() {
       setAppointmentModalOpen(true);
   }, []);
 
-  const handleHighlightPatient = useCallback((patientId: string) => {
-    setSelectedPatientId(prevId => (prevId === patientId ? null : patientId));
-    setRecurringSlotsView(null); // Close recurring view when highlighting
-    setRecurringHighlightDays([]); // Clear green highlights
-  }, []);
+  const handleHighlightPatient = useCallback((patientId: string, time: string) => {
+    // If clicking the same patient, toggle off all highlights
+    if (selectedPatientId === patientId) {
+        setSelectedPatientId(null);
+        setRecurringHighlightDays([]);
+        return;
+    }
+
+    // Set patient highlight (indigo globes)
+    setSelectedPatientId(patientId);
+    
+    // Also, calculate and set recurring availability for the clicked time (green globes)
+    if (selectedDate) {
+        const monday = getMonday(selectedDate);
+        const availableDays: string[] = [];
+        for (let i = 0; i < 5; i++) {
+            const dayToCheck = new Date(monday);
+            dayToCheck.setDate(monday.getDate() + i);
+            if (isSlotRecurring(time, dayToCheck)) {
+                availableDays.push(dayToCheck.toISOString().split('T')[0]);
+            }
+        }
+        setRecurringHighlightDays(availableDays);
+    }
+    
+    setRecurringSlotsView(null); // Close recurring view
+  }, [selectedPatientId, selectedDate, isSlotRecurring]);
 
   const handleOpenNewAppointment = useCallback((time?: string) => {
     if (!selectedDate) return;

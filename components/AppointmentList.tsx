@@ -8,7 +8,7 @@ interface AppointmentListProps {
   onSelectAppointment: (appointment: AppointmentWithDetails) => void;
   onDeleteAppointment: (appointmentId: string) => void;
   onAddNewAppointment: (time?: string) => void;
-  onHighlightPatient: (patientId: string) => void;
+  onHighlightPatient: (patientId: string, time: string) => void;
   onShowRecurringWeekAvailability: (time: string, date: Date) => void;
   recurringAvailableSlots?: string[];
 }
@@ -17,7 +17,7 @@ const AppointmentRow: React.FC<{
   appointment: AppointmentWithDetails; 
   onSelectAppointment: (appointment: AppointmentWithDetails) => void; 
   onDeleteAppointment: (appointmentId: string) => void;
-  onHighlightPatient: (patientId: string) => void;
+  onHighlightPatient: (patientId: string, time: string) => void;
 }> = ({ appointment, onSelectAppointment, onDeleteAppointment, onHighlightPatient }) => {
   return (
     <div 
@@ -44,11 +44,11 @@ const AppointmentRow: React.FC<{
         <button
             onClick={(e) => {
                 e.stopPropagation();
-                onHighlightPatient(appointment.patientId);
+                onHighlightPatient(appointment.patientId, appointment.time);
             }}
             className="p-1 rounded-full hover:bg-slate-600 transition-colors"
-            aria-label={`Resaltar turnos de ${appointment.patientName}`}
-            title={`Resaltar todos los turnos de ${appointment.patientName} en el calendario`}
+            aria-label={`Resaltar turnos de ${appointment.patientName} y ver disponibilidad`}
+            title={`Resaltar turnos del paciente y ver disponibilidad semanal para este horario.`}
         >
             <div className="w-4 h-4 bg-indigo-400 rounded-full"></div>
         </button>
@@ -103,7 +103,7 @@ const EmptySlotRow: React.FC<{
           )}
         </div>
         <div className="flex justify-end">
-             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-500" fill="none" viewBox="http://www.w3.org/2000/svg" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
         </div>
     </div>
 );
