@@ -56,56 +56,103 @@ const StepperInput: React.FC<{
     const handleStep = (direction: 1 | -1) => {
         const parts = value.split(separator);
         const numericParts = parts.map(p => parseInt(p, 10) || 0);
+        
+        if (separator === ':') {
+            const [hours, minutes] = numericParts;
+            const step = steps[activeIndex];
+            
+            let totalMinutes = hours * 60 + minutes;
+            if (activeIndex === 0) { // Stepping hours
+                totalMinutes += direction * step * 60;
+            } else { // Stepping minutes
+                totalMinutes += direction * step;
+            }
+
+            const totalDayMinutes = 24 * 60;
+            // Handle wrapping around midnight
+            totalMinutes = (totalMinutes % totalDayMinutes + totalDayMinutes) % totalDayMinutes;
+
+            const newHours = Math.floor(totalMinutes / 60);
+            const newMinutes = totalMinutes % 60;
+
+            onChange(`${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`);
+            return;
+        }
+    
+        // Original logic for session
         const step = steps[activeIndex];
-
-        if (separator === ':' && activeIndex === 1) { // Special logic for minutes
-            numericParts[1] = numericParts[1] === 0 ? 30 : 0;
-        } else {
-            numericParts[activeIndex] += direction * step;
-        }
+        numericParts[activeIndex] += direction * step;
+        numericParts[activeIndex] = Math.max(0, numericParts[activeIndex]);
         
-        // Boundary checks
-        if (separator === ':') { // Time boundaries
-            if (activeIndex === 0) { // Hours
-                if (numericParts[0] > 23) numericParts[0] = 0;
-                if (numericParts[0] < 0) numericParts[0] = 23;
-            }
-        } else { // Session boundaries
-            numericParts[activeIndex] = Math.max(0, numericParts[activeIndex]);
-        }
-        
-        const finalParts = numericParts.map((part, index) => {
-            if (separator === ':') {
-                return String(part).padStart(2, '0');
-            }
-            return String(part);
-        });
-
+        const finalParts = numericParts.map(String);
         onChange(finalParts.join(separator));
+    };
+    
+    const handlePartChange = (index: number, newValue: string) => {
+        const currentParts = value.split(separator);
+        // Ensure we have two parts to avoid errors
+        if (currentParts.length < 2) {
+            currentParts.push('');
+        }
+        const newParts = [...currentParts];
+        const numericValue = newValue.replace(/[^0-9]/g, '');
+        
+        if (separator === ':') {
+            const parsedValue = parseInt(numericValue, 10);
+            if (index === 0) { // hours
+                newParts[index] = parsedValue > 23 ? '23' : numericValue;
+            } else { // minutes
+                newParts[index] = parsedValue > 59 ? '59' : numericValue;
+            }
+        } else {
+            newParts[index] = numericValue;
+        }
+        onChange(newParts.join(separator));
+    };
+
+    const handleBlur = () => {
+        const parts = value.split(separator);
+        if (separator === ':') {
+            const hours = parseInt(parts[0] || '0', 10);
+            const minutes = parseInt(parts[1] || '0', 10);
+            onChange(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`);
+        } else {
+            const p1 = parseInt(parts[0] || '0', 10);
+            const p2 = parseInt(parts[1] || '0', 10);
+            onChange(`${p1}/${p2}`);
+        }
     };
 
     const parts = value.split(separator);
-    const part1 = parts[0] || (separator === ':' ? '00' : '0');
-    const part2 = parts[1] || (separator === ':' ? '00' : '0');
+    const part1 = parts[0] || '';
+    const part2 = parts[1] || '';
 
     return (
         <div>
             <label className="block text-sm font-medium text-slate-300">{label}</label>
             <div className="flex items-center gap-2 mt-1 w-full bg-slate-700 border border-slate-600 rounded-md p-2 focus-within:ring-2 focus-within:ring-cyan-500 focus-within:border-cyan-500">
-                <div className="flex-grow font-mono text-xl text-center tracking-wider">
-                    <span
-                        onClick={() => setActiveIndex(0)}
-                        className={`cursor-pointer p-1 rounded transition-colors ${activeIndex === 0 ? 'text-cyan-400 bg-slate-900/50' : 'text-white'}`}
-                    >
-                        {part1}
-                    </span>
+                <div className="flex-grow font-mono text-xl text-center tracking-wider flex justify-center items-center">
+                    <input
+                        type="text"
+                        value={part1}
+                        onChange={e => handlePartChange(0, e.target.value)}
+                        onFocus={() => setActiveIndex(0)}
+                        onBlur={handleBlur}
+                        className={`w-12 p-1 rounded text-center bg-transparent transition-colors outline-none ${activeIndex === 0 ? 'text-cyan-400 bg-slate-900/50' : 'text-white'}`}
+                        maxLength={2}
+                        aria-label={label + " (horas)"}
+                    />
                     <span className="text-slate-500 mx-1">{separator}</span>
-                    <span
-                        onClick={() => setActiveIndex(1)}
-                        className={`cursor-pointer p-1 rounded transition-colors ${activeIndex === 1 ? 'text-cyan-400 bg-slate-900/50' : 'text-white'}`}
-                    >
-                        {part2}
-                    </span>
+                    <input
+                        type="text"
+                        value={part2}
+                        onChange={e => handlePartChange(1, e.target.value)}
+                        onFocus={() => setActiveIndex(1)}
+                        onBlur={handleBlur}
+                        className={`w-12 p-1 rounded text-center bg-transparent transition-colors outline-none ${activeIndex === 1 ? 'text-cyan-400 bg-slate-900/50' : 'text-white'}`}
+                        maxLength={2}
+                        aria-label={label + " (minutos)"}
+                    />
                 </div>
                 <div className="flex flex-col items-center">
                     <button onClick={() => handleStep(1)} className="px-2 text-slate-300 hover:text-white hover:bg-slate-600 rounded" aria-label="Aumentar valor">▲</button>
@@ -229,7 +276,7 @@ const AppointmentModal: React.FC<{
                         value={time}
                         onChange={setTime}
                         separator=":"
-                        steps={[1, 30]}
+                        steps={[1, 15]}
                     />
                     <StepperInput
                         label="Sesión (ej. 5/10)"
@@ -973,7 +1020,7 @@ export default function App() {
         observations: patient?.observations
       });
     }
-    return result;
+    return result.sort((a,b) => a.time.localeCompare(b.time));
   }, [selectedDate, appointments, patients]);
 
   const highlightedPatientDays = useMemo(() => {
