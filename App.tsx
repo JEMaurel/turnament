@@ -1926,7 +1926,6 @@ export default function App() {
   const handleAppointmentClickFromViewer = useCallback((date: Date) => {
     setCurrentDate(new Date(date));
     setSelectedDate(new Date(date));
-    setSelectedPatientId(null);
   }, []);
 
 
@@ -2071,6 +2070,7 @@ export default function App() {
             onHighlightPatient={handleHighlightPatient}
             onShowRecurringWeekAvailability={handleShowRecurringWeekAvailability}
             recurringAvailableSlots={recurringSlotsView && selectedDate && recurringSlotsView.date.toISOString().split('T')[0] === selectedDate.toISOString().split('T')[0] ? recurringSlotsView.slots : []}
+            highlightedPatientId={selectedPatientId}
           />
         </div>
       </main>

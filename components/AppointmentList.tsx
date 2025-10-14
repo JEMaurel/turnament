@@ -11,6 +11,7 @@ interface AppointmentListProps {
   onHighlightPatient: (patientId: string, time: string) => void;
   onShowRecurringWeekAvailability: (time: string, date: Date) => void;
   recurringAvailableSlots?: string[];
+  highlightedPatientId?: string | null;
 }
 
 const AppointmentRow: React.FC<{ 
@@ -18,10 +19,11 @@ const AppointmentRow: React.FC<{
   onSelectAppointment: (appointment: AppointmentWithDetails) => void; 
   onDeleteAppointment: (appointmentId: string) => void;
   onHighlightPatient: (patientId: string, time: string) => void;
-}> = ({ appointment, onSelectAppointment, onDeleteAppointment, onHighlightPatient }) => {
+  isHighlighted: boolean;
+}> = ({ appointment, onSelectAppointment, onDeleteAppointment, onHighlightPatient, isHighlighted }) => {
   return (
     <div 
-      className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center p-2 bg-slate-800 rounded-lg hover:bg-slate-700 cursor-pointer transition-colors"
+      className={`grid grid-cols-1 md:grid-cols-4 gap-2 items-center p-2 rounded-lg cursor-pointer transition-all duration-300 ${isHighlighted ? 'bg-slate-700 ring-2 ring-amber-400 shadow-lg shadow-amber-500/20' : 'bg-slate-800 hover:bg-slate-700'}`}
       onClick={() => onSelectAppointment(appointment)}
     >
       <div className="font-mono text-lg text-cyan-400">{appointment.time}</div>
@@ -110,7 +112,7 @@ const EmptySlotRow: React.FC<{
 
 type ScheduledItem = { type: 'filled'; data: AppointmentWithDetails } | { type: 'empty'; time: string };
 
-const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient, onShowRecurringWeekAvailability, recurringAvailableSlots = [] }) => {
+const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient, onShowRecurringWeekAvailability, recurringAvailableSlots = [], highlightedPatientId }) => {
 
   // FIX: Using a `for...of` loop to build the schedule. This resolves a subtle
   // TypeScript inference issue where the previous `map/filter` approach caused `item.data`
@@ -176,6 +178,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
                   onSelectAppointment={onSelectAppointment}
                   onDeleteAppointment={onDeleteAppointment}
                   onHighlightPatient={onHighlightPatient}
+                  isHighlighted={!!highlightedPatientId && item.data.patientId === highlightedPatientId}
                 />
               );
             } else {
