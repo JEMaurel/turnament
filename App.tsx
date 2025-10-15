@@ -1060,6 +1060,24 @@ export default function App() {
     return result.sort((a,b) => a.time.localeCompare(b.time));
   }, [selectedDate, appointments, patients]);
 
+  const multiBookedPatientIds = useMemo(() => {
+    if (!selectedDate) return new Set<string>();
+
+    const patientCounts = new Map<string, number>();
+    appointmentsForSelectedDay.forEach(app => {
+        patientCounts.set(app.patientId, (patientCounts.get(app.patientId) || 0) + 1);
+    });
+
+    const ids = new Set<string>();
+    patientCounts.forEach((count, patientId) => {
+        if (count > 1) {
+            ids.add(patientId);
+        }
+    });
+
+    return ids;
+  }, [appointmentsForSelectedDay, selectedDate]);
+
   const highlightedPatientDays = useMemo(() => {
     if (!selectedPatientId) return [];
     const month = currentDate.getMonth();
@@ -2133,6 +2151,7 @@ export default function App() {
             onShowRecurringWeekAvailability={handleShowRecurringWeekAvailability}
             recurringAvailableSlots={recurringSlotsView && selectedDate && recurringSlotsView.date.toISOString().split('T')[0] === selectedDate.toISOString().split('T')[0] ? recurringSlotsView.slots : []}
             highlightedPatientId={selectedPatientId}
+            multiBookedPatientIds={multiBookedPatientIds}
           />
         </div>
       </main>
