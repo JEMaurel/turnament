@@ -9,6 +9,8 @@ interface CalendarProps {
   onMonthChange: (newDate: Date) => void;
   weeksToShow?: number;
   showNavigation?: boolean;
+  onGoToToday?: () => void;
+  showGoToTodayButton?: boolean;
 }
 
 const WEEK_DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -21,7 +23,9 @@ const Calendar: React.FC<CalendarProps> = ({
   recurringHighlightDays = [],
   onMonthChange,
   weeksToShow = 6,
-  showNavigation = true
+  showNavigation = true,
+  onGoToToday,
+  showGoToTodayButton = false
 }) => {
   const month = currentDate.getMonth();
   const year = currentDate.getFullYear();
@@ -83,9 +87,24 @@ const Calendar: React.FC<CalendarProps> = ({
         </div>
       )}
        {!showNavigation && (
-         <h2 className="text-xl font-bold capitalize text-center mb-4">
-            {currentDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
-         </h2>
+         <div className="relative flex justify-center items-center mb-4">
+            <h2 className="text-xl font-bold capitalize text-center">
+                {currentDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
+            </h2>
+            {showGoToTodayButton && onGoToToday && (
+                <button 
+                    onClick={onGoToToday} 
+                    className="absolute top-0 right-0 p-2 rounded-full hover:bg-slate-700 transition-colors"
+                    title="Volver al día de hoy"
+                    aria-label="Volver al día de hoy"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clipRule="evenodd" />
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                    </svg>
+                </button>
+            )}
+         </div>
        )}
       <div className="grid grid-cols-7 gap-2 text-center">
         {WEEK_DAYS.map((day, index) => 

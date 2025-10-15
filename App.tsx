@@ -1135,6 +1135,12 @@ export default function App() {
 
 
   // Handlers
+  const handleGoToToday = useCallback(() => {
+    const today = new Date();
+    setCurrentDate(today);
+    setSelectedDate(today);
+  }, []);
+
    const calculateRecurringSlots = useCallback((clickedDate: Date): string[] => {
     const searchWeeks = 12; // Check for the next 3 months
     const availableSlots: string[] = [];
@@ -2048,6 +2054,8 @@ export default function App() {
                 onMonthChange={() => {}} 
                 weeksToShow={3}
                 showNavigation={false}
+                onGoToToday={handleGoToToday}
+                showGoToTodayButton={true}
               />
             </div>
              <div className="flex-grow min-h-0">
