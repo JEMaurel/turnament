@@ -112,6 +112,8 @@ const Calendar: React.FC<CalendarProps> = ({
             cellClasses += ' cursor-pointer';
             if (isSelected) {
               cellClasses += ' bg-cyan-500 text-white';
+            } else if (isHighlighted && isRecurringHighlighted) {
+              cellClasses += ' bg-indigo-500 text-white ring-2 ring-green-500 ring-offset-2 ring-offset-slate-800';
             } else if (isRecurringHighlighted) {
               cellClasses += ' bg-green-500 text-white';
             } else if (isHighlighted) {

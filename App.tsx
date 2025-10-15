@@ -1283,6 +1283,23 @@ export default function App() {
   }, [selectedDate]);
 
   const handleSaveAppointment = (appointmentData: Appointment, patientData: Patient, recurringDays: number[], recurringWeeks: number) => {
+      // --- ALERTA DE DOBLE TURNO ---
+      // Se ejecuta solo al crear un nuevo turno, no al editar uno existente.
+      if (!editingAppointment) {
+        const patientHasAppointmentOnDay = appointments.some(
+          (app: Appointment) => app.patientId === patientData.id && app.date === appointmentData.date
+        );
+
+        if (patientHasAppointmentOnDay) {
+          const proceed = window.confirm(
+            `"${patientData.name}" ya tiene un turno agendado para este día. ¿Desea agregar un segundo turno?`
+          );
+          if (!proceed) {
+            return; // Detener el guardado si el usuario cancela.
+          }
+        }
+      }
+
       let currentPatients = [...patients];
       let currentAppointments = [...appointments];
 
