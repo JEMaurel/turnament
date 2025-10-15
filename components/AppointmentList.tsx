@@ -160,7 +160,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
   return (
     <div className="p-4 bg-slate-800/50 rounded-lg shadow-lg h-full flex flex-col">
       <div className="flex justify-center items-center mb-4">
-        <h2 className="text-xl font-bold capitalize">
+        <h2 className="text-xl font-bold">
           <span className="text-cyan-400">{selectedDate ? selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Ningún día seleccionado'}</span>
         </h2>
       </div>

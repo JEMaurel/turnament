@@ -264,22 +264,22 @@ const AppointmentModal: React.FC<{
         );
     };
 
-    const weekDays = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    const weekDays = ['l', 'm', 'm', 'j', 'v', 's', 'd'];
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={existingAppointment ? 'Editar Turno' : 'Nuevo Turno'}>
+        <Modal isOpen={isOpen} onClose={onClose} title={existingAppointment ? 'editar turno' : 'nuevo turno'}>
             <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-                <h4 className="text-lg font-semibold text-cyan-400 border-b border-slate-700 pb-2">Datos del Turno</h4>
+                <h4 className="text-lg font-semibold text-cyan-400 border-b border-slate-700 pb-2">datos del turno</h4>
                 <div className="grid grid-cols-2 gap-4">
                     <StepperInput
-                        label="Hora"
+                        label="hora"
                         value={time}
                         onChange={setTime}
                         separator=":"
                         steps={[1, 15]}
                     />
                     <StepperInput
-                        label="Sesión (ej. 5/10)"
+                        label="sesión (ej. 5/10)"
                         value={session}
                         onChange={setSession}
                         separator="/"
@@ -289,10 +289,10 @@ const AppointmentModal: React.FC<{
 
                 {!existingAppointment && (
                     <div className="space-y-4">
-                        <label className="block text-sm font-medium text-slate-300">Repetir semanalmente</label>
+                        <label className="block text-sm font-medium text-slate-300">repetir semanalmente</label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-900/50 p-3 rounded-md">
                             <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-2">Los días:</label>
+                                <label className="block text-xs font-medium text-slate-400 mb-2">los días:</label>
                                 <div className="flex gap-2">
                                     {weekDays.map((day, index) => {
                                         const jsDay = index === 6 ? 0 : index + 1;
@@ -306,7 +306,7 @@ const AppointmentModal: React.FC<{
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-2">Repetir por:</label>
+                                <label className="block text-xs font-medium text-slate-400 mb-2">repetir por:</label>
                                 <div className="flex items-center gap-2">
                                     <input 
                                         type="number" 
@@ -322,10 +322,10 @@ const AppointmentModal: React.FC<{
                     </div>
                 )}
                 
-                <h4 className="text-lg font-semibold text-cyan-400 border-b border-slate-700 pb-2 pt-4">Datos del Paciente</h4>
+                <h4 className="text-lg font-semibold text-cyan-400 border-b border-slate-700 pb-2 pt-4">datos del paciente</h4>
                 <div>
-                    <label className="block text-sm font-medium text-slate-300">Nombre del Paciente</label>
-                    <input type="text" list="patients-list" value={patientName} onChange={e => handlePatientSelect(e.target.value)} placeholder="Escriba o seleccione un paciente" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1 focus:ring-cyan-500 focus:border-cyan-500"/>
+                    <label className="block text-sm font-medium text-slate-300">nombre del paciente</label>
+                    <input type="text" list="patients-list" value={patientName} onChange={e => handlePatientSelect(e.target.value)} placeholder="escriba o seleccione un paciente" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1 focus:ring-cyan-500 focus:border-cyan-500"/>
                     <datalist id="patients-list">
                         {patients.map(p => <option key={p.id} value={p.name} />)}
                     </datalist>
@@ -333,39 +333,39 @@ const AppointmentModal: React.FC<{
                 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-300">Obra Social</label>
+                        <label className="block text-sm font-medium text-slate-300">obra social</label>
                         <input type="text" value={insurance} onChange={e => setInsurance(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                     </div>
                      <div>
-                        <label className="block text-sm font-medium text-slate-300">DNI</label>
-                        <input type="text" value={dni} onChange={e => setDni(e.target.value)} placeholder="N° de Documento" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
+                        <label className="block text-sm font-medium text-slate-300">dni</label>
+                        <input type="text" value={dni} onChange={e => setDni(e.target.value)} placeholder="n° de documento" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                     </div>
                 </div>
                 
                 <div>
-                    <label className="block text-sm font-medium text-slate-300">Tratamiento</label>
+                    <label className="block text-sm font-medium text-slate-300">tratamiento</label>
                     <textarea value={treatment} onChange={e => setTreatment(e.target.value)} rows={2} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"></textarea>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-slate-300">Médico Derivante</label>
+                    <label className="block text-sm font-medium text-slate-300">médico derivante</label>
                     <input type="text" value={doctor} onChange={e => setDoctor(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-slate-300">Diagnóstico (Dx)</label>
+                    <label className="block text-sm font-medium text-slate-300">diagnóstico (dx)</label>
                     <textarea value={diagnosis} onChange={e => setDiagnosis(e.target.value)} rows={2} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                 </div>
 
                  <div>
-                    <label className="block text-sm font-medium text-slate-300">Observaciones (Obs)</label>
+                    <label className="block text-sm font-medium text-slate-300">observaciones (obs)</label>
                     <textarea ref={observationsInputRef} value={observations} onChange={e => setObservations(e.target.value)} rows={2} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                 </div>
 
             </div>
             <div className="flex justify-end pt-4 mt-4 border-t border-slate-700">
-                <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors mr-2">Cancelar</button>
-                <button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Guardar</button>
+                <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors mr-2">cancelar</button>
+                <button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">guardar</button>
             </div>
         </Modal>
     );
@@ -402,27 +402,27 @@ const PatientRegistryModal: React.FC<{
     const PatientDetail: React.FC<{label: string; value?: string}> = ({ label, value }) => (
         <div>
             <p className="text-sm font-medium text-slate-400">{label}</p>
-            <p className="text-lg text-white whitespace-pre-wrap">{value || <span className="text-slate-500">No especificado</span>}</p>
+            <p className="text-lg text-white whitespace-pre-wrap">{value || <span className="text-slate-500">no especificado</span>}</p>
         </div>
     );
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={selectedPatient ? "Detalles del Paciente" : "Registro de Pacientes"}>
+        <Modal isOpen={isOpen} onClose={onClose} title={selectedPatient ? "detalles del paciente" : "registro de pacientes"}>
             {selectedPatient ? (
                 <>
                     <div className="max-h-[60vh] overflow-y-auto pr-2">
                         <button onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 mb-4 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                            <span>Volver a la lista</span>
+                            <span>volver a la lista</span>
                         </button>
                         <div className="space-y-4">
                             <h3 className="text-3xl font-bold text-amber-300 border-b border-slate-700 pb-2">{selectedPatient.name}</h3>
-                            <PatientDetail label="DNI" value={selectedPatient.dni} />
-                            <PatientDetail label="Obra Social" value={selectedPatient.insurance} />
-                            <PatientDetail label="Médico Derivante" value={selectedPatient.doctor} />
-                            <PatientDetail label="Tratamiento" value={selectedPatient.treatment} />
-                            <PatientDetail label="Diagnóstico (Dx)" value={selectedPatient.diagnosis} />
-                            <PatientDetail label="Observaciones (Obs)" value={selectedPatient.observations} />
+                            <PatientDetail label="dni" value={selectedPatient.dni} />
+                            <PatientDetail label="obra social" value={selectedPatient.insurance} />
+                            <PatientDetail label="médico derivante" value={selectedPatient.doctor} />
+                            <PatientDetail label="tratamiento" value={selectedPatient.treatment} />
+                            <PatientDetail label="diagnóstico (dx)" value={selectedPatient.diagnosis} />
+                            <PatientDetail label="observaciones (obs)" value={selectedPatient.observations} />
                         </div>
                     </div>
                     <div className="flex justify-end pt-4 mt-4 border-t border-slate-700">
@@ -432,10 +432,10 @@ const PatientRegistryModal: React.FC<{
                                 setSelectedPatient(null);
                             }}
                             className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
-                            aria-label={`Eliminar permanentemente a ${selectedPatient.name}`}
+                            aria-label={`eliminar permanentemente a ${selectedPatient.name}`}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>
-                            <span>Eliminar Paciente</span>
+                            <span>eliminar paciente</span>
                         </button>
                     </div>
                 </>
@@ -449,11 +449,11 @@ const PatientRegistryModal: React.FC<{
                         </span>
                         <input
                             type="text"
-                            placeholder="Buscar paciente por nombre o DNI..."
+                            placeholder="buscar paciente por nombre o dni..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 pl-10 pr-4 focus:ring-cyan-500 focus:border-cyan-500"
-                            aria-label="Buscar Paciente"
+                            aria-label="buscar paciente"
                         />
                     </div>
                     <div className="max-h-[50vh] overflow-y-auto pr-2">
@@ -479,8 +479,8 @@ const PatientRegistryModal: React.FC<{
                                               onDeletePatient(patient.id);
                                           }}
                                           className="p-2 text-red-400 rounded-full hover:bg-red-900/50 transition-colors flex-shrink-0 ml-2"
-                                          aria-label={`Eliminar a ${patient.name}`}
-                                          title={`Eliminar a ${patient.name} y todos sus turnos`}
+                                          aria-label={`eliminar a ${patient.name}`}
+                                          title={`eliminar a ${patient.name} y todos sus turnos`}
                                       >
                                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>
                                       </button>
@@ -488,7 +488,7 @@ const PatientRegistryModal: React.FC<{
                                 ))}
                             </ul>
                         ) : (
-                            <p className="text-slate-400 text-center py-4">No se encontraron pacientes.</p>
+                            <p className="text-slate-400 text-center py-4">no se encontraron pacientes.</p>
                         )}
                     </div>
                 </>
@@ -512,15 +512,15 @@ const AiAssistantModal: React.FC<{isOpen: boolean; onClose: () => void; patients
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Asistente IA">
+        <Modal isOpen={isOpen} onClose={onClose} title="asistente ia">
             <div className="space-y-4">
                 <div className="bg-slate-700 p-4 rounded-md min-h-[150px] max-h-[40vh] overflow-y-auto">
-                    {isLoading ? <p className="text-cyan-400 animate-pulse">Pensando...</p> : <p className="whitespace-pre-wrap">{response || "Hola, ¿en qué puedo ayudarte hoy?"}</p>}
+                    {isLoading ? <p className="text-cyan-400 animate-pulse">pensando...</p> : <p className="whitespace-pre-wrap">{response || "hola, ¿en qué puedo ayudarte hoy?"}</p>}
                 </div>
                 <div className="flex gap-2">
-                    <input type="text" value={question} onChange={e => setQuestion(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleAsk()} placeholder="Ej: ¿Qué días viene Juan Perez?" className="flex-grow bg-slate-700 border border-slate-600 rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"/>
+                    <input type="text" value={question} onChange={e => setQuestion(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleAsk()} placeholder="ej: ¿qué días viene juan perez?" className="flex-grow bg-slate-700 border border-slate-600 rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"/>
                     <button onClick={handleAsk} disabled={isLoading} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-slate-500">
-                        {isLoading ? '...' : 'Preguntar'}
+                        {isLoading ? '...' : 'preguntar'}
                     </button>
                 </div>
             </div>
@@ -541,19 +541,19 @@ const DeleteAppointmentOptionsModal: React.FC<{
   onAnnihilate: () => void;
 }> = ({ isOpen, onClose, patientName, onDeleteSingle, onDeleteWeek, onChangeSchedule, onDeleteColumn, onExtendWeek, onExtendColumn, onAnnihilate }) => {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Modificar Turno">
+    <Modal isOpen={isOpen} onClose={onClose} title="modificar turno">
       <div className="space-y-4">
-        <p>Ha seleccionado un turno de <span className="font-bold text-cyan-400">{patientName}</span>. ¿Qué desea hacer?</p>
+        <p>ha seleccionado un turno de <span className="font-bold text-cyan-400">{patientName}</span>. ¿qué desea hacer?</p>
       </div>
       <div className="flex flex-wrap justify-end gap-3 pt-4 mt-4 border-t border-slate-700">
-        <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cancelar</button>
-        <button onClick={onExtendWeek} className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Extender Semana</button>
-        <button onClick={onExtendColumn} className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Extender Columna</button>
-        <button onClick={onChangeSchedule} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cambiar Horario</button>
-        <button onClick={onDeleteSingle} className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar este turno</button>
-        <button onClick={onDeleteWeek} className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar turnos de la semana</button>
-        <button onClick={onDeleteColumn} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Eliminar Columna</button>
-        <button onClick={onAnnihilate} className="bg-red-800 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors border-2 border-red-500">Aniquilar</button>
+        <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">cancelar</button>
+        <button onClick={onExtendWeek} className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">extender semana</button>
+        <button onClick={onExtendColumn} className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">extender columna</button>
+        <button onClick={onChangeSchedule} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">cambiar horario</button>
+        <button onClick={onDeleteSingle} className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">eliminar este turno</button>
+        <button onClick={onDeleteWeek} className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">eliminar turnos de la semana</button>
+        <button onClick={onDeleteColumn} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">eliminar columna</button>
+        <button onClick={onAnnihilate} className="bg-red-800 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors border-2 border-red-500">aniquilar</button>
       </div>
     </Modal>
   );
@@ -571,12 +571,12 @@ const RecurringSlotsViewer: React.FC<{
       <button 
         onClick={onClose} 
         className="absolute top-2 right-2 text-slate-400 hover:text-white z-10 p-1 text-2xl"
-        aria-label="Cerrar vista de turnos recurrentes"
+        aria-label="cerrar vista de turnos recurrentes"
       >
         &times;
       </button>
-      <h3 className="text-xl font-bold capitalize text-center mb-4">
-        Disponibles los <span className="text-cyan-400">{dayName}</span>
+      <h3 className="text-xl font-bold text-center mb-4">
+        disponibles los <span className="text-cyan-400">{dayName}</span>
       </h3>
       <div className="flex-grow overflow-y-auto no-scrollbar pr-2">
         {slots.length > 0 ? (
@@ -589,7 +589,7 @@ const RecurringSlotsViewer: React.FC<{
           </div>
         ) : (
           <p className="text-center text-slate-400 pt-8">
-            No hay horarios recurrentes 100% libres para los próximos 3 meses.
+            no hay horarios recurrentes 100% libres para los próximos 3 meses.
           </p>
         )}
       </div>
@@ -604,7 +604,7 @@ const PatientScheduleViewer: React.FC<{
   onAppointmentClick: (date: Date) => void;
   currentDate: Date;
 }> = ({ patientName, schedule, onClose, onAppointmentClick, currentDate }) => {
-  const WEEK_DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const WEEK_DAYS = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const monthRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -631,12 +631,12 @@ const PatientScheduleViewer: React.FC<{
        <button 
         onClick={onClose} 
         className="absolute top-2 right-2 text-slate-400 hover:text-white z-20 p-1 text-2xl"
-        aria-label="Cerrar vista de horarios del paciente"
+        aria-label="cerrar vista de horarios del paciente"
       >
         &times;
       </button>
-      <h3 className="text-xl font-bold capitalize text-center mb-2">
-        Horarios de <span className="text-indigo-400">{patientName}</span>
+      <h3 className="text-xl font-bold text-center mb-2">
+        horarios de <span className="text-indigo-400">{patientName}</span>
       </h3>
 
       <div className="grid grid-cols-7 gap-1 text-center text-sm font-semibold text-slate-400 mb-2 px-2">
@@ -655,7 +655,7 @@ const PatientScheduleViewer: React.FC<{
                     else monthRefs.current.delete(monthKey);
                   }}
                 >
-                  <h4 className="text-lg font-bold text-center text-cyan-400 capitalize my-2 sticky top-0 bg-slate-800 py-1 z-10">
+                  <h4 className="text-lg font-bold text-center text-cyan-400 my-2 sticky top-0 bg-slate-800 py-1 z-10">
                     {monthly.month} {monthly.year}
                   </h4>
                   {monthly.weeks.map((week, weekIndex) => (
@@ -692,7 +692,7 @@ const PatientScheduleViewer: React.FC<{
             })
         ) : (
              <p className="text-center text-slate-400 pt-8">
-                Este paciente no tiene turnos agendados.
+                este paciente no tiene turnos agendados.
             </p>
         )}
       </div>
@@ -712,14 +712,14 @@ const DniConflictBanner: React.FC<{
           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
         </svg>
         <span className="font-semibold">
-          Alerta: Se {conflictCount === 1 ? 'ha detectado 1 paciente' : `han detectado ${conflictCount} pares de pacientes`} con el mismo DNI pero nombres distintos.
+          alerta: se {conflictCount === 1 ? 'ha detectado 1 paciente' : `han detectado ${conflictCount} pares de pacientes`} con el mismo dni pero nombres distintos.
         </span>
       </div>
       <button
         onClick={onResolve}
         className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
       >
-        Revisar y Unificar
+        revisar y unificar
       </button>
     </div>
   );
@@ -767,24 +767,24 @@ const DniConflictModal: React.FC<{
         <h4 className="text-xl font-bold ml-3">{patient.name}</h4>
       </div>
       <div className="space-y-2 text-sm pl-8">
-        <p><span className="font-semibold text-slate-400">Obra Social:</span> {patient.insurance || 'N/A'}</p>
-        <p><span className="font-semibold text-slate-400">Tratamiento:</span> {patient.treatment || 'N/A'}</p>
+        <p><span className="font-semibold text-slate-400">obra social:</span> {patient.insurance || 'n/a'}</p>
+        <p><span className="font-semibold text-slate-400">tratamiento:</span> {patient.treatment || 'n/a'}</p>
       </div>
     </div>
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Resolver Conflicto de DNI">
+    <Modal isOpen={isOpen} onClose={onClose} title="resolver conflicto de dni">
       <div className="space-y-4">
-        <p>Se encontraron dos pacientes con el DNI <span className="font-bold text-cyan-400">{patientA.dni}</span> pero con nombres diferentes. Seleccione el registro que desea conservar. Todos los turnos se asignarán al paciente seleccionado.</p>
+        <p>se encontraron dos pacientes con el dni <span className="font-bold text-cyan-400">{patientA.dni}</span> pero con nombres diferentes. seleccione el registro que desea conservar. todos los turnos se asignarán al paciente seleccionado.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <PatientCard patient={patientA} isSelected={idToKeep === patientA.id} onSelect={() => setIdToKeep(patientA.id)} />
           <PatientCard patient={patientB} isSelected={idToKeep === patientB.id} onSelect={() => setIdToKeep(patientB.id)} />
         </div>
       </div>
       <div className="flex justify-end pt-4 mt-4 border-t border-slate-700">
-        <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors mr-2">Cancelar</button>
-        <button onClick={handleUnifyClick} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Unificar Pacientes</button>
+        <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors mr-2">cancelar</button>
+        <button onClick={handleUnifyClick} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">unificar pacientes</button>
       </div>
     </Modal>
   );
@@ -803,9 +803,9 @@ const StorageIndicator: React.FC<{
     'bg-green-500';
 
   return (
-    <div className="w-48 bg-slate-700 p-2 rounded-lg" title={`Usando ${usedMB} MB de ${maxMB} MB`}>
+    <div className="w-48 bg-slate-700 p-2 rounded-lg" title={`usando ${usedMB} mb de ${maxMB} mb`}>
       <div className="flex justify-between items-center text-xs text-slate-400 mb-1">
-        <span>Almacenamiento Local</span>
+        <span>almacenamiento local</span>
         <span>{percentage.toFixed(0)}%</span>
       </div>
       <div className="w-full bg-slate-800 rounded-full h-2.5">
@@ -826,14 +826,14 @@ const StorageWarningBanner: React.FC<{ onClose: () => void, onExport: () => void
           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
         </svg>
         <span className="font-semibold">
-          ¡Atención! El almacenamiento local está casi lleno. Se recomienda exportar una copia de seguridad.
+          ¡atención! el almacenamiento local está casi lleno. se recomienda exportar una copia de seguridad.
         </span>
       </div>
       <div className="flex items-center gap-4">
         <button onClick={onExport} className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-          Exportar ahora
+          exportar ahora
         </button>
-        <button onClick={onClose} className="text-2xl hover:text-slate-200" aria-label="Cerrar advertencia">&times;</button>
+        <button onClick={onClose} className="text-2xl hover:text-slate-200" aria-label="cerrar advertencia">&times;</button>
       </div>
     </div>
   );
@@ -1016,7 +1016,7 @@ export default function App() {
       const patient = patients.find(p => p.id === app.patientId);
       result.push({
         ...app,
-        patientName: patient?.name || 'Desconocido',
+        patientName: patient?.name || 'desconocido',
         observations: patient?.observations
       });
     }
@@ -1044,7 +1044,7 @@ export default function App() {
   
   const highlightedPatientName = useMemo(() => {
     if (!selectedPatientId) return '';
-    return patients.find(p => p.id === selectedPatientId)?.name || 'Desconocido';
+    return patients.find(p => p.id === selectedPatientId)?.name || 'desconocido';
   }, [selectedPatientId, patients]);
 
   const highlightedPatientSchedule = useMemo((): MonthlySchedule[] => {
@@ -1298,7 +1298,7 @@ export default function App() {
 
         if (patientHasAppointmentOnDay) {
           const proceed = window.confirm(
-            `"${patientData.name}" ya tiene un turno agendado para este día. ¿Desea agregar un segundo turno?`
+            `"${patientData.name}" ya tiene un turno agendado para este día. ¿desea agregar un segundo turno?`
           );
           if (!proceed) {
             return; // Detener el guardado si el usuario cancela.
@@ -1322,9 +1322,9 @@ export default function App() {
 
       if (conflictingPatient) {
           const confirmation = window.confirm(
-              `ADVERTENCIA: Ya existe otro paciente llamado '${conflictingPatient.name}' con un DNI diferente (${conflictingPatient.dni || 'ninguno'}).\n\n` +
-              `Si continúa, se creará un registro de paciente completamente nuevo para '${patientData.name}'.\n\n` +
-              `Haga clic en 'Aceptar' para crear un NUEVO paciente, o 'Cancelar' para revisar los datos.`
+              `advertencia: ya existe otro paciente llamado '${conflictingPatient.name}' con un dni diferente (${conflictingPatient.dni || 'ninguno'}).\n\n` +
+              `si continúa, se creará un registro de paciente completamente nuevo para '${patientData.name}'.\n\n` +
+              `haga clic en 'aceptar' para crear un nuevo paciente, o 'cancelar' para revisar los datos.`
           );
 
           if (confirmation) {
@@ -1345,8 +1345,8 @@ export default function App() {
         if (originalPatientId && trimmedDni) {
           const targetPatientByDni = currentPatients.find(p => p.dni === trimmedDni && p.id !== originalPatientId);
           if (targetPatientByDni) {
-            const sourcePatientName = currentPatients.find(p => p.id === originalPatientId)?.name || 'Desconocido';
-            const confirmationMessage = `Se encontró al paciente "${targetPatientByDni.name}" con el mismo DNI. ¿Desea unificar todos los turnos de "${sourcePatientName}" con este paciente? Se usarán los datos del formulario actual para actualizar el registro.`;
+            const sourcePatientName = currentPatients.find(p => p.id === originalPatientId)?.name || 'desconocido';
+            const confirmationMessage = `se encontró al paciente "${targetPatientByDni.name}" con el mismo dni. ¿desea unificar todos los turnos de "${sourcePatientName}" con este paciente? se usarán los datos del formulario actual para actualizar el registro.`;
 
             if (window.confirm(confirmationMessage)) {
               const newPatients = currentPatients
@@ -1464,13 +1464,13 @@ export default function App() {
                   const existing = existingAppointmentsByDateTime.get(`${c.date}|${c.time}`);
                   if (existing) {
                       // FIX: Property 'patientId' does not exist on type 'unknown'. Cast `existing` from a Map.get() result to the expected `Appointment` type.
-                      const patientName = currentPatients.find(p => p.id === (existing as Appointment).patientId)?.name || 'Desconocido';
+                      const patientName = currentPatients.find(p => p.id === (existing as Appointment).patientId)?.name || 'desconocido';
                       conflictDetailsList.push(`- ${new Date(c.date + 'T12:00:00').toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit'})} a las ${c.time} con ${patientName}`);
                   }
               }
               const conflictDetails = conflictDetailsList.join('\n');
 
-              if (!window.confirm(`Atención: Los siguientes turnos se sobrescribirán:\n${conflictDetails}\n\n¿Desea continuar?`)) {
+              if (!window.confirm(`atención: los siguientes turnos se sobrescribirán:\n${conflictDetails}\n\n¿desea continuar?`)) {
                   return;
               }
 
@@ -1487,7 +1487,7 @@ export default function App() {
 
 
   const handleDeleteAppointment = useCallback((appointmentId: string) => {
-    if (window.confirm("¿Estás seguro de que quieres eliminar este turno?")) {
+    if (window.confirm("¿estás seguro de que quieres eliminar este turno?")) {
       // FIX: Explicitly typing `a` prevents TypeScript from inferring it as `unknown`.
       const newAppointments = appointments.filter((a: Appointment) => a.id !== appointmentId);
       updateState({ patients, appointments: newAppointments });
@@ -1498,7 +1498,7 @@ export default function App() {
     const patientToDelete = patients.find(p => p.id === patientId);
     if (!patientToDelete) return;
 
-    const confirmMessage = `¡Atención! Esta acción eliminará al paciente '${patientToDelete.name}' y TODOS sus turnos agendados. Esta acción no se puede deshacer.\n\n¿Desea continuar?`;
+    const confirmMessage = `¡atención! esta acción eliminará al paciente '${patientToDelete.name}' y todos sus turnos agendados. esta acción no se puede deshacer.\n\n¿desea continuar?`;
     
     if (window.confirm(confirmMessage)) {
       const newPatients = patients.filter(p => p.id !== patientId);
@@ -1584,7 +1584,7 @@ export default function App() {
   const handleAnnihilate = useCallback(() => {
     if (!dateForDeletion || !selectedPatientId || !highlightedPatientName) return;
 
-    const confirmMessage = `¡Atención! Esta acción eliminará TODOS los turnos futuros de "${highlightedPatientName}" a partir de mañana y durante los próximos 3 meses.\n\nEsta acción no se puede deshacer. ¿Desea continuar?`;
+    const confirmMessage = `¡atención! esta acción eliminará todos los turnos futuros de "${highlightedPatientName}" a partir de mañana y durante los próximos 3 meses.\n\nesta acción no se puede deshacer. ¿desea continuar?`;
 
     if (window.confirm(confirmMessage)) {
         const startDate = new Date(dateForDeletion);
@@ -1609,7 +1609,7 @@ export default function App() {
         setDeleteOptionsModalOpen(false);
         setDateForDeletion(null);
         setSelectedPatientId(null);
-        alert(`Se han eliminado los turnos futuros de ${highlightedPatientName}.`);
+        alert(`se han eliminado los turnos futuros de ${highlightedPatientName}.`);
     }
   }, [dateForDeletion, selectedPatientId, highlightedPatientName, appointments, patients, updateState]);
 
@@ -1637,7 +1637,7 @@ export default function App() {
     });
 
     if (appointmentsInWeek.length === 0) {
-        alert("No se encontraron turnos para este paciente en la semana seleccionada para extender.");
+        alert("no se encontraron turnos para este paciente en la semana seleccionada para extender.");
         setDeleteOptionsModalOpen(false);
         setDateForDeletion(null);
         return;
@@ -1697,13 +1697,13 @@ export default function App() {
             const existing = existingAppointmentsByDateTime.get(`${c.date}|${c.time}`);
             if (existing) {
                 // FIX: Property 'patientId' does not exist on type 'unknown'. Cast `existing` from a Map.get() result to the expected `Appointment` type.
-                const patientName = patients.find(p => p.id === (existing as Appointment).patientId)?.name || 'Desconocido';
+                const patientName = patients.find(p => p.id === (existing as Appointment).patientId)?.name || 'desconocido';
                 conflictDetailsList.push(`- ${new Date(c.date + 'T12:00:00').toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit'})} a las ${c.time} con ${patientName}`);
             }
         }
         const conflictDetails = conflictDetailsList.join('\n');
 
-        if (!window.confirm(`Atención: Los siguientes turnos se sobrescribirán:\n${conflictDetails}\n\n¿Desea continuar?`)) {
+        if (!window.confirm(`atención: los siguientes turnos se sobrescribirán:\n${conflictDetails}\n\n¿desea continuar?`)) {
             setDeleteOptionsModalOpen(false);
             setDateForDeletion(null);
             return;
@@ -1731,7 +1731,7 @@ export default function App() {
     });
 
     if (appointmentsOnDay.length === 0) {
-        alert("No se encontraron turnos para este paciente en el día seleccionado para extender.");
+        alert("no se encontraron turnos para este paciente en el día seleccionado para extender.");
         setDeleteOptionsModalOpen(false);
         setDateForDeletion(null);
         return;
@@ -1787,13 +1787,13 @@ export default function App() {
             const existing = existingAppointmentsByDateTime.get(`${c.date}|${c.time}`);
             if (existing) {
                 // FIX: Property 'patientId' does not exist on type 'unknown'. Cast `existing` from a Map.get() result to the expected `Appointment` type.
-                const patientName = patients.find(p => p.id === (existing as Appointment).patientId)?.name || 'Desconocido';
+                const patientName = patients.find(p => p.id === (existing as Appointment).patientId)?.name || 'desconocido';
                 conflictDetailsList.push(`- ${new Date(c.date + 'T12:00:00').toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit'})} a las ${c.time} con ${patientName}`);
             }
         }
         const conflictDetails = conflictDetailsList.join('\n');
 
-        if (!window.confirm(`Atención: Los siguientes turnos se sobrescribirán:\n${conflictDetails}\n\n¿Desea continuar?`)) {
+        if (!window.confirm(`atención: los siguientes turnos se sobrescribirán:\n${conflictDetails}\n\n¿desea continuar?`)) {
             setDeleteOptionsModalOpen(false);
             setDateForDeletion(null);
             return;
@@ -1870,19 +1870,19 @@ export default function App() {
                         const content = e.target?.result;
                         if (typeof content === 'string') {
                             const data = JSON.parse(content);
-                            const confirmationMessage = `¿Estás seguro de que quieres reemplazar tus ${dataType === 'patients' ? 'pacientes' : 'turnos'} actuales con los datos de este archivo? Esta acción no se puede deshacer.`;
+                            const confirmationMessage = `¿estás seguro de que quieres reemplazar tus ${dataType === 'patients' ? 'pacientes' : 'turnos'} actuales con los datos de este archivo? esta acción no se puede deshacer.`;
                             if (window.confirm(confirmationMessage)) {
                                 if (dataType === 'patients') {
                                     updateState({ patients: data as Patient[], appointments });
                                 } else {
                                     updateState({ patients, appointments: data as Appointment[] });
                                 }
-                                alert('Datos importados correctamente.');
+                                alert('datos importados correctamente.');
                             }
                         }
                     } catch (error) {
                         console.error("Error al importar el archivo:", error);
-                        alert("Error: El archivo no es un JSON válido.");
+                        alert("error: el archivo no es un json válido.");
                     }
                 };
                 reader.readAsText(file);
@@ -1965,13 +1965,13 @@ export default function App() {
   return (
     <div className="h-screen bg-slate-900 text-white p-4 sm:p-6 lg:p-8 flex flex-col overflow-hidden">
       <header className="flex flex-wrap justify-between items-center mb-6 gap-4 flex-shrink-0">
-        <h1 className="text-3xl font-bold text-cyan-400">Consultorio Virtual</h1>
+        <h1 className="text-3xl font-bold text-cyan-400">consultorio virtual</h1>
         <div className="flex items-center flex-wrap gap-3">
             <div className="flex items-center gap-1">
-                <button onClick={handleUndo} disabled={!canUndo} title="Deshacer (Ctrl+Z)" className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors">
+                <button onClick={handleUndo} disabled={!canUndo} title="deshacer (ctrl+z)" className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" /></svg>
                 </button>
-                 <button onClick={handleRedo} disabled={!canRedo} title="Rehacer (Ctrl+Y)" className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors">
+                 <button onClick={handleRedo} disabled={!canRedo} title="rehacer (ctrl+y)" className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                 </button>
             </div>
@@ -1983,7 +1983,7 @@ export default function App() {
                 </span>
                 <input
                     type="text"
-                    placeholder="Buscar paciente por nombre o DNI..."
+                    placeholder="buscar paciente por nombre o dni..."
                     value={patientSearchTerm}
                     onChange={e => setPatientSearchTerm(e.target.value)}
                     className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 pl-10 pr-4 focus:ring-cyan-500 focus:border-cyan-500"
@@ -2007,26 +2007,26 @@ export default function App() {
             </div>
             <div className="flex items-center gap-3 border-l border-slate-700 pl-3">
                 <StorageIndicator {...storageUsage} />
-                <button onClick={handleExportData} title="Exportar Pacientes y Turnos a JSON" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                <button onClick={handleExportData} title="exportar pacientes y turnos a json" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                    <span className="hidden sm:inline">Exportar</span>
+                    <span className="hidden sm:inline">exportar</span>
                 </button>
-                 <button onClick={() => handleImportData('patients')} title="Importar Pacientes desde JSON" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                 <button onClick={() => handleImportData('patients')} title="importar pacientes desde json" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
-                    <span className="hidden sm:inline">Imp. Pacientes</span>
+                    <span className="hidden sm:inline">imp. pacientes</span>
                 </button>
-                 <button onClick={() => handleImportData('appointments')} title="Importar Turnos desde JSON" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                 <button onClick={() => handleImportData('appointments')} title="importar turnos desde json" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
-                    <span className="hidden sm:inline">Imp. Turnos</span>
+                    <span className="hidden sm:inline">imp. turnos</span>
                 </button>
             </div>
             <button onClick={() => setPatientRegistryOpen(true)} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0115 11h1c.414 0 .79.122 1.11.325a6.002 6.002 0 015.74 4.901A1 1 0 0121.82 18H15.07a3.001 3.001 0 01-2.14 2H10a1 1 0 01-1-1v-1a1 1 0 011-1h2.071a3.001 3.001 0 01-.141-1z" /></svg>
-                <span>Pacientes</span>
+                <span>pacientes</span>
             </button>
             <button onClick={() => setAiModalOpen(true)} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>
-                <span>Asistente IA</span>
+                <span>asistente ia</span>
             </button>
         </div>
       </header>
