@@ -104,29 +104,43 @@ const Calendar: React.FC<CalendarProps> = ({
           const isRecurringHighlighted = recurringHighlightDays.includes(dateString);
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-          let cellClasses = 'p-2 rounded-full transition-colors duration-200';
+          let cellClasses = 'relative p-2 rounded-full transition-colors duration-200';
           
           if (!isCurrentMonth) {
             cellClasses += ' text-slate-600 cursor-not-allowed';
           } else {
             cellClasses += ' cursor-pointer';
+            
+            // 1. Determine background color based on a clear priority
             if (isSelected) {
-              cellClasses += ' bg-cyan-500 text-white';
-            } else if (isHighlighted && isRecurringHighlighted) {
-              cellClasses += ' bg-indigo-500 text-white ring-2 ring-green-500 ring-offset-2 ring-offset-slate-800';
-            } else if (isRecurringHighlighted) {
-              cellClasses += ' bg-green-500 text-white';
-            } else if (isHighlighted) {
-              cellClasses += ' bg-indigo-500 text-white';
-            } else if (isToday) {
-              cellClasses += ' bg-slate-600 text-white';
+                cellClasses += ' bg-cyan-500 text-white';
+            } else if (isHighlighted) { // A day with a patient appointment
+                cellClasses += ' bg-indigo-500 text-white';
+            } else if (isRecurringHighlighted) { // A day with recurring availability
+                cellClasses += ' bg-green-500 text-white';
+            } else if (isToday) { // A normal 'today'
+                cellClasses += ' bg-slate-600 text-white';
             } else if (isWeekend) {
-              cellClasses += ' text-slate-500 hover:bg-slate-700';
+                cellClasses += ' text-slate-500 hover:bg-slate-700';
             } else {
-              cellClasses += ' hover:bg-slate-700';
+                cellClasses += ' hover:bg-slate-700';
+            }
+
+            // 2. Add indicators cumulatively, allowing them to stack.
+            
+            // The green "inner ring" (using box-shadow) for days with both
+            // a patient turn (violet) and recurring availability.
+            if (isHighlighted && isRecurringHighlighted) {
+                // Using a colored shadow to simulate an inner ring that doesn't conflict with the outer 'ring'.
+                cellClasses += ' shadow-[0_0_0_2px_theme(colors.green.500)]';
+            }
+
+            // The amber "outer ring" for today's date always has top priority.
+            // It will stack visually on top of the shadow and background.
+            if (isToday) {
+                cellClasses += ' ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-800';
             }
           }
-
 
           return (
             <div
