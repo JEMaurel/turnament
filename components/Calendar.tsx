@@ -153,9 +153,9 @@ const Calendar: React.FC<CalendarProps> = ({
               className={cellClasses}
             >
               {date.getDate()}
-              {/* Render the green dot for the special case */}
+              {/* Render a more visible bar for the special case */}
               {isSpecialTripleOverlap && (
-                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                <span className="absolute bottom-1 left-2 right-2 h-1 bg-green-400 rounded-full"></span>
               )}
             </div>
           );
