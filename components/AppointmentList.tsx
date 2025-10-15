@@ -27,7 +27,7 @@ const AppointmentRow: React.FC<{
       onClick={() => onSelectAppointment(appointment)}
     >
       <div className="font-mono text-lg text-cyan-400">{appointment.time}</div>
-      <div className="font-semibold text-amber-300 truncate">{appointment.patientName}</div>
+      <div className="font-semibold text-amber-300 truncate text-lg">{appointment.patientName}</div>
       <div className="flex items-center gap-3 text-slate-400">
         <span className="text-base font-mono">{appointment.session}</span>
         {appointment.observations && (

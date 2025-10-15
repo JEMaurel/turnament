@@ -465,7 +465,7 @@ const PatientRegistryModal: React.FC<{
                                         className="flex justify-between items-center p-3 bg-slate-700 rounded-md hover:bg-slate-600 transition-colors"
                                     >
                                       <span
-                                        className="flex-grow cursor-pointer font-semibold text-amber-300"
+                                        className="flex-grow cursor-pointer font-semibold text-amber-300 text-lg"
                                         onClick={() => setSelectedPatient(patient)}
                                         role="button"
                                         tabIndex={0}
