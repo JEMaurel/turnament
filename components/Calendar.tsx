@@ -104,6 +104,9 @@ const Calendar: React.FC<CalendarProps> = ({
           const isRecurringHighlighted = recurringHighlightDays.includes(dateString);
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
+          // New condition for the special overlap case
+          const isSpecialTripleOverlap = isToday && isHighlighted && isRecurringHighlighted;
+
           let cellClasses = 'relative p-2 rounded-full transition-colors duration-200';
           
           if (!isCurrentMonth) {
@@ -114,9 +117,9 @@ const Calendar: React.FC<CalendarProps> = ({
             // 1. Determine background color based on a clear priority
             if (isSelected) {
                 cellClasses += ' bg-cyan-500 text-white';
-            } else if (isHighlighted) { // A day with a patient appointment
+            } else if (isHighlighted) { // A day with a patient appointment (violet) always has priority
                 cellClasses += ' bg-indigo-500 text-white';
-            } else if (isRecurringHighlighted) { // A day with recurring availability
+            } else if (isRecurringHighlighted) { // A day with recurring availability (green)
                 cellClasses += ' bg-green-500 text-white';
             } else if (isToday) { // A normal 'today'
                 cellClasses += ' bg-slate-600 text-white';
@@ -130,7 +133,8 @@ const Calendar: React.FC<CalendarProps> = ({
             
             // The green "inner ring" (using box-shadow) for days with both
             // a patient turn (violet) and recurring availability.
-            if (isHighlighted && isRecurringHighlighted) {
+            // This is NOT applied in the special triple overlap case.
+            if (isHighlighted && isRecurringHighlighted && !isSpecialTripleOverlap) {
                 // Using a colored shadow to simulate an inner ring that doesn't conflict with the outer 'ring'.
                 cellClasses += ' shadow-[0_0_0_2px_theme(colors.green.500)]';
             }
@@ -149,6 +153,10 @@ const Calendar: React.FC<CalendarProps> = ({
               className={cellClasses}
             >
               {date.getDate()}
+              {/* Render the green dot for the special case */}
+              {isSpecialTripleOverlap && (
+                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+              )}
             </div>
           );
         })}
