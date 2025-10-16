@@ -975,6 +975,34 @@ const QuickLinksModal: React.FC<{
     );
 };
 
+const PendingTasksModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  tasks: string;
+  onTasksChange: (newTasks: string) => void;
+}> = ({ isOpen, onClose, tasks, onTasksChange }) => {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="trámites pendientes">
+      <div className="space-y-4">
+        <textarea
+          value={tasks}
+          onChange={(e) => onTasksChange(e.target.value)}
+          placeholder="anote aquí los trámites, recetas o recordatorios pendientes..."
+          className="w-full h-64 bg-slate-700 border border-slate-600 rounded-md p-3 focus:ring-cyan-500 focus:border-cyan-500 resize-none"
+          aria-label="área de texto para trámites pendientes"
+          autoFocus
+        />
+      </div>
+      <div className="flex justify-end pt-4 mt-4 border-t border-slate-700">
+        <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+          cerrar
+        </button>
+      </div>
+    </Modal>
+  );
+};
+
+
 // Helper function to get the Monday of a given date
 const getMonday = (d: Date): Date => {
     const date = new Date(d);
@@ -1070,10 +1098,20 @@ export default function App() {
   const [defaultAppointmentTime, setDefaultAppointmentTime] = useState('11:00');
   const [isDeleteOptionsModalOpen, setDeleteOptionsModalOpen] = useState(false);
   const [dateForDeletion, setDateForDeletion] = useState<Date | null>(null);
+  const [isPendingTasksModalOpen, setPendingTasksModalOpen] = useState(false);
   
   // New state for recurring slots viewer
   const [recurringSlotsView, setRecurringSlotsView] = useState<{ date: Date; slots: string[] } | null>(null);
   const [recurringHighlightDays, setRecurringHighlightDays] = useState<string[]>([]);
+  
+  // Pending tasks state
+  const [pendingTasks, setPendingTasks] = useState<string>(
+    () => window.localStorage.getItem('consultorio-pendingTasks') || ''
+  );
+
+  useEffect(() => {
+    window.localStorage.setItem('consultorio-pendingTasks', pendingTasks);
+  }, [pendingTasks]);
 
   // DNI Conflict State
   const [dniConflicts, setDniConflicts] = useState<[Patient, Patient][]>([]);
@@ -2206,6 +2244,20 @@ export default function App() {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0115 11h1c.414 0 .79.122 1.11.325a6.002 6.002 0 015.74 4.901A1 1 0 0121.82 18H15.07a3.001 3.001 0 01-2.14 2H10a1 1 0 01-1-1v-1a1 1 0 011-1h2.071a3.001 3.001 0 01-.141-1z" /></svg>
                 <span>pacientes</span>
             </button>
+            <button 
+                onClick={() => setPendingTasksModalOpen(true)} 
+                className={`flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg transition-colors ${
+                    pendingTasks.trim() 
+                    ? 'bg-amber-600 hover:bg-amber-500 animate-pulse' 
+                    : 'bg-slate-700 hover:bg-slate-600'
+                }`}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h2a2 2 0 002-2V4a2 2 0 00-2-2H9z" />
+                    <path fillRule="evenodd" d="M4 2a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2H4zm10 2a1 1 0 00-1-1H7a1 1 0 00-1 1v1h8V4z" clipRule="evenodd" />
+                </svg>
+                <span>trámites</span>
+            </button>
             <button onClick={() => setAiModalOpen(true)} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>
                 <span>asistente ia</span>
@@ -2342,6 +2394,13 @@ export default function App() {
         conflict={dniConflicts[0] || null}
         onUnify={handleUnifyConflict}
       />
+      <PendingTasksModal
+        isOpen={isPendingTasksModalOpen}
+        onClose={() => setPendingTasksModalOpen(false)}
+        tasks={pendingTasks}
+        onTasksChange={setPendingTasks}
+      />
+
 
       {/* Banners */}
       {dniConflicts.length > 0 && (
