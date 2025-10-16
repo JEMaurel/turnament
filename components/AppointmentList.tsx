@@ -10,6 +10,7 @@ interface AppointmentListProps {
   onAddNewAppointment: (time?: string) => void;
   onHighlightPatient: (patientId: string, time: string) => void;
   onShowRecurringWeekAvailability: (time: string, date: Date) => void;
+  onShowQuickLinks: (patientId: string) => void;
   recurringAvailableSlots?: string[];
   highlightedPatientId?: string | null;
   multiBookedPatientIds?: Set<string>;
@@ -20,9 +21,10 @@ const AppointmentRow: React.FC<{
   onSelectAppointment: (appointment: AppointmentWithDetails) => void; 
   onDeleteAppointment: (appointmentId: string) => void;
   onHighlightPatient: (patientId: string, time: string) => void;
+  onShowQuickLinks: (patientId: string) => void;
   isHighlighted: boolean;
   isMultiBooked: boolean;
-}> = ({ appointment, onSelectAppointment, onDeleteAppointment, onHighlightPatient, isHighlighted, isMultiBooked }) => {
+}> = ({ appointment, onSelectAppointment, onDeleteAppointment, onHighlightPatient, onShowQuickLinks, isHighlighted, isMultiBooked }) => {
   return (
     <div 
       className={`grid grid-cols-1 md:grid-cols-4 gap-2 items-center p-2 rounded-lg cursor-pointer transition-all duration-300 ${isHighlighted ? 'bg-slate-700 ring-2 ring-amber-400 shadow-lg shadow-amber-500/20' : 'bg-slate-800 hover:bg-slate-700'}`}
@@ -58,12 +60,22 @@ const AppointmentRow: React.FC<{
         </button>
       </div>
       <div className="flex justify-end items-center gap-2">
+         <button
+          onClick={(e) => { e.stopPropagation(); onShowQuickLinks(appointment.patientId); }}
+          className="p-2 rounded-full hover:bg-slate-600 transition-colors"
+          aria-label={`ver accesos directos de ${appointment.patientName}`}
+          title="ver accesos directos"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-cyan-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+          </svg>
+        </button>
          <button 
           onClick={(e) => { e.stopPropagation(); onSelectAppointment(appointment); }} 
           className="p-2 rounded-full hover:bg-slate-600 transition-colors"
           aria-label="Editar Turno"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2-2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
         </button>
         <button 
           onClick={(e) => { e.stopPropagation(); onDeleteAppointment(appointment.id); }} 
@@ -114,7 +126,7 @@ const EmptySlotRow: React.FC<{
 
 type ScheduledItem = { type: 'filled'; data: AppointmentWithDetails } | { type: 'empty'; time: string };
 
-const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient, onShowRecurringWeekAvailability, recurringAvailableSlots = [], highlightedPatientId, multiBookedPatientIds = new Set() }) => {
+const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient, onShowRecurringWeekAvailability, onShowQuickLinks, recurringAvailableSlots = [], highlightedPatientId, multiBookedPatientIds = new Set() }) => {
 
   // FIX: Using a `for...of` loop to build the schedule. This resolves a subtle
   // TypeScript inference issue where the previous `map/filter` approach caused `item.data`
@@ -180,6 +192,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
                   onSelectAppointment={onSelectAppointment}
                   onDeleteAppointment={onDeleteAppointment}
                   onHighlightPatient={onHighlightPatient}
+                  onShowQuickLinks={onShowQuickLinks}
                   isHighlighted={!!highlightedPatientId && item.data.patientId === highlightedPatientId}
                   isMultiBooked={multiBookedPatientIds.has(item.data.patientId)}
                 />

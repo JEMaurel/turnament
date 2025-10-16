@@ -1,4 +1,3 @@
-
 export interface Patient {
   id: string;
   name: string;
@@ -8,6 +7,7 @@ export interface Patient {
   treatment?: string;
   diagnosis?: string;
   observations?: string;
+  driveUrl?: string;
 }
 
 export interface Appointment {

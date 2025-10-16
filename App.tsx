@@ -255,6 +255,7 @@ const AppointmentModal: React.FC<{
             name: patientName,
             dni: dni.trim(),
             insurance, doctor, treatment, diagnosis, observations,
+            driveUrl: existingPatient?.driveUrl || '',
         };
         onSave(appointmentData, patientData, recurringDays, recurringWeeks);
         onClose();
@@ -413,9 +414,11 @@ const PatientRegistryModal: React.FC<{
   onClose: () => void;
   patients: Patient[];
   onDeletePatient: (patientId: string) => void;
-}> = ({ isOpen, onClose, patients, onDeletePatient }) => {
+  onUpdatePatient: (patient: Patient) => void;
+  selectedPatient: Patient | null;
+  onSetSelectedPatient: (patient: Patient | null) => void;
+}> = ({ isOpen, onClose, patients, onDeletePatient, onUpdatePatient, selectedPatient, onSetSelectedPatient }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
     const filteredPatients = useMemo(() => {
         const trimmedSearch = searchTerm.trim();
@@ -432,7 +435,7 @@ const PatientRegistryModal: React.FC<{
     useEffect(() => {
         if (!isOpen) {
             setSearchTerm('');
-            setSelectedPatient(null);
+            // The selected patient is now controlled by the parent component
         }
     }, [isOpen]);
 
@@ -442,14 +445,14 @@ const PatientRegistryModal: React.FC<{
             <p className="text-lg text-white whitespace-pre-wrap">{value || <span className="text-slate-500">no especificado</span>}</p>
         </div>
     );
-
+    
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={selectedPatient ? "detalles del paciente" : "registro de pacientes"}>
             {selectedPatient ? (
                 <>
                     <div className="max-h-[60vh] overflow-y-auto pr-2">
-                        <button onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 mb-4 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                        <button onClick={() => onSetSelectedPatient(null)} className="flex items-center gap-2 mb-4 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
                             <span>volver a la lista</span>
                         </button>
                         <div className="space-y-4">
@@ -466,7 +469,7 @@ const PatientRegistryModal: React.FC<{
                         <button
                             onClick={() => {
                                 onDeletePatient(selectedPatient.id);
-                                setSelectedPatient(null);
+                                onSetSelectedPatient(null);
                             }}
                             className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
                             aria-label={`eliminar permanentemente a ${selectedPatient.name}`}
@@ -499,28 +502,15 @@ const PatientRegistryModal: React.FC<{
                                 {filteredPatients.map(patient => (
                                     <li 
                                         key={patient.id} 
-                                        className="flex justify-between items-center p-3 bg-slate-700 rounded-md hover:bg-slate-600 transition-colors"
-                                    >
-                                      <span
-                                        className="flex-grow cursor-pointer font-semibold text-amber-300 text-xl"
-                                        onClick={() => setSelectedPatient(patient)}
+                                        onClick={() => onSetSelectedPatient(patient)}
+                                        className="p-3 bg-slate-700 hover:bg-slate-600 rounded-md cursor-pointer transition-colors"
                                         role="button"
                                         tabIndex={0}
-                                        onKeyPress={(e) => e.key === 'Enter' && setSelectedPatient(patient)}
-                                      >
+                                        onKeyPress={(e) => e.key === 'Enter' && onSetSelectedPatient(patient)}
+                                    >
+                                      <span className="font-semibold text-amber-300 text-xl truncate">
                                         {patient.name}
                                       </span>
-                                      <button
-                                          onClick={(e) => {
-                                              e.stopPropagation();
-                                              onDeletePatient(patient.id);
-                                          }}
-                                          className="p-2 text-red-400 rounded-full hover:bg-red-900/50 transition-colors flex-shrink-0 ml-2"
-                                          aria-label={`eliminar a ${patient.name}`}
-                                          title={`eliminar a ${patient.name} y todos sus turnos`}
-                                      >
-                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>
-                                      </button>
                                     </li>
                                 ))}
                             </ul>
@@ -876,6 +866,114 @@ const StorageWarningBanner: React.FC<{ onClose: () => void, onExport: () => void
   );
 };
 
+const QuickLinksModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  patient: Patient | null;
+  mainDriveUrl: string;
+  onSavePatientUrl: (patientId: string, newUrl: string) => void;
+  onSaveMainUrl: (newUrl: string) => void;
+}> = ({ isOpen, onClose, patient, mainDriveUrl, onSavePatientUrl, onSaveMainUrl }) => {
+    const [patientUrl, setPatientUrl] = useState('');
+    const [mainUrl, setMainUrl] = useState('');
+    const [isEditingMainUrl, setIsEditingMainUrl] = useState(false);
+    const [isEditingPatientUrl, setIsEditingPatientUrl] = useState(true);
+
+    useEffect(() => {
+        if (isOpen) {
+            if (patient) {
+                setPatientUrl(patient.driveUrl || '');
+            }
+            setMainUrl(mainDriveUrl);
+            setIsEditingMainUrl(false); // Reset to closed on open
+            setIsEditingPatientUrl(true); // Reset to open on open
+        }
+    }, [patient, mainDriveUrl, isOpen]);
+    
+    if (!patient) return null;
+
+    const handleSave = () => {
+        onSavePatientUrl(patient.id, patientUrl);
+        onSaveMainUrl(mainUrl);
+        onClose();
+    };
+    
+    const DriveButton: React.FC<{ label: string; url?: string; className?: string; iconClassName?: string; }> = ({ label, url, className, iconClassName }) => (
+        <a 
+            href={url || '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`flex items-center justify-center gap-3 w-full text-center font-bold py-3 px-4 rounded-lg transition-colors ${url ? className : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
+            onClick={(e) => !url && e.preventDefault()}
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${iconClassName}`} viewBox="0 0 24 24" fill="currentColor"><path d="M22.484 13.911l-8.541 1.325a.833.833 0 01-.968-.783l-1.325-8.541a.833.833 0 01.783-.968l8.541-1.325a.833.833 0 01.968.783l1.325 8.541a.833.833 0 01-.783.968zM9.41 18.067L1.5 16.516a.833.833 0 01-.6-1.025l4.316-7.475a.833.833 0 011.025-.6l7.91 1.551a.833.833 0 01.6 1.025l-4.316 7.475a.833.833 0 01-1.025.6zM9.95 22.5a.833.833 0 01-.833-.742l-1.3-9.458a.833.833 0 01.742-.917l9.458-1.3a.833.833 0 01.916.742l1.3 9.458a.833.833 0 01-.741.917l-9.458 1.3a.83.83 0 01-.084 0z"/></svg>
+            <span>{label}</span>
+        </a>
+    );
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="accesos directos">
+            <div className="space-y-6">
+                <p className="text-center text-xl">
+                    paciente: <span className="font-bold text-amber-300">{patient.name}</span>
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <DriveButton label="principal" url={mainUrl} className="bg-indigo-600 hover:bg-indigo-500" iconClassName="text-indigo-300" />
+                    <DriveButton label="propio" url={patientUrl} className="bg-amber-600 hover:bg-amber-500" iconClassName="text-amber-200" />
+                </div>
+                <div className="space-y-4">
+                    <div>
+                        <button
+                            onClick={() => setIsEditingMainUrl(prev => !prev)}
+                            className="w-full text-left font-bold text-indigo-300 bg-indigo-900/50 hover:bg-indigo-800/60 p-3 rounded-lg transition-colors flex justify-between items-center"
+                            aria-expanded={isEditingMainUrl}
+                        >
+                            <span>url principal</span>
+                             <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform ${isEditingMainUrl ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                        </button>
+                        {isEditingMainUrl && (
+                            <input 
+                                type="text" 
+                                value={mainUrl}
+                                onChange={e => setMainUrl(e.target.value)}
+                                placeholder="pegue el enlace a la carpeta general"
+                                className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-2 focus:ring-cyan-500 focus:border-cyan-500"
+                                autoFocus
+                            />
+                        )}
+                    </div>
+                    <div>
+                         <button
+                            onClick={() => setIsEditingPatientUrl(prev => !prev)}
+                            className="w-full text-left font-bold text-amber-300 bg-amber-900/50 hover:bg-amber-800/60 p-3 rounded-lg transition-colors flex justify-between items-center"
+                            aria-expanded={isEditingPatientUrl}
+                        >
+                            <span>url propio</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform ${isEditingPatientUrl ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                        </button>
+                        {isEditingPatientUrl && (
+                            <input 
+                                type="text" 
+                                value={patientUrl}
+                                onChange={e => setPatientUrl(e.target.value)}
+                                placeholder="pegue el enlace a la carpeta específica de este paciente"
+                                className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-2 focus:ring-cyan-500 focus:border-cyan-500"
+                            />
+                        )}
+                    </div>
+                </div>
+            </div>
+             <div className="flex justify-end pt-4 mt-4 border-t border-slate-700">
+                <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors mr-2">cancelar</button>
+                <button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">guardar enlaces</button>
+            </div>
+        </Modal>
+    );
+};
 
 // Helper function to get the Monday of a given date
 const getMonday = (d: Date): Date => {
@@ -893,6 +991,7 @@ export default function App() {
   // State
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [mainDriveUrl, setMainDriveUrl] = useState<string>(() => window.localStorage.getItem('consultorio-mainDriveUrl') || '');
   
   // Undo/Redo State Management
   const [history, setHistory] = useState<AppState[]>(() => {
@@ -948,6 +1047,10 @@ export default function App() {
     }
   }, [patients, appointments]);
 
+  useEffect(() => {
+    window.localStorage.setItem('consultorio-mainDriveUrl', mainDriveUrl);
+  }, [mainDriveUrl]);
+
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
   // Resizing State
@@ -957,9 +1060,12 @@ export default function App() {
 
   // Modal States
   const [isAppointmentModalOpen, setAppointmentModalOpen] = useState(false);
+  const [isQuickLinksModalOpen, setQuickLinksModalOpen] = useState(false);
+  const [selectedPatientForQuickLinks, setSelectedPatientForQuickLinks] = useState<Patient | null>(null);
   // FIX: Updated state to use the centralized AppointmentWithDetails type.
   const [editingAppointment, setEditingAppointment] = useState<AppointmentWithDetails | null>(null);
   const [isPatientRegistryOpen, setPatientRegistryOpen] = useState(false);
+  const [selectedPatientForRegistry, setSelectedPatientForRegistry] = useState<Patient | null>(null);
   const [isAiModalOpen, setAiModalOpen] = useState(false);
   const [defaultAppointmentTime, setDefaultAppointmentTime] = useState('11:00');
   const [isDeleteOptionsModalOpen, setDeleteOptionsModalOpen] = useState(false);
@@ -1343,6 +1449,21 @@ export default function App() {
     setAppointmentModalOpen(true);
   }, [selectedDate]);
 
+  const handleShowQuickLinks = useCallback((patientId: string) => {
+    const patient = patients.find(p => p.id === patientId);
+    if (patient) {
+        setSelectedPatientForQuickLinks(patient);
+        setQuickLinksModalOpen(true);
+    }
+  }, [patients]);
+
+  const handleUpdatePatientDriveUrl = useCallback((patientId: string, newUrl: string) => {
+    const newPatients = patients.map(p => 
+        p.id === patientId ? { ...p, driveUrl: newUrl } : p
+    );
+    updateState({ patients: newPatients, appointments });
+  }, [patients, appointments, updateState]);
+
   const handleSaveAppointment = (appointmentData: Appointment, patientData: Patient, recurringDays: number[], recurringWeeks: number) => {
       // --- ALERTA DE DOBLE TURNO ---
       // Se ejecuta solo al crear un nuevo turno, no al editar uno existente.
@@ -1539,6 +1660,11 @@ export default function App() {
           }
       }
   };
+
+  const handleUpdatePatient = useCallback((updatedPatient: Patient) => {
+    const newPatients = patients.map(p => p.id === updatedPatient.id ? updatedPatient : p);
+    updateState({ patients: newPatients, appointments });
+  }, [patients, appointments, updateState]);
 
 
   const handleDeleteAppointment = useCallback((appointmentId: string) => {
@@ -1867,8 +1993,7 @@ export default function App() {
   }, [dateForDeletion, selectedPatientId, appointments, patients, updateState]);
 
   const handleUnifyConflict = useCallback((patientToKeep: Patient, patientToRemove: Patient) => {
-    // FIX: Explicitly typing `app` as `Appointment` resolves an issue where its type
-    // was inferred as `unknown` within the `.map` callback.
+    // Update appointments to point to the kept patient
     const newAppointments = appointments.map((app: Appointment) => {
         if (app.patientId === patientToRemove.id) {
           return { ...app, patientId: patientToKeep.id };
@@ -1876,7 +2001,9 @@ export default function App() {
         return app;
     });
   
+    // Update patients list: remove the other one
     const newPatients = patients.filter(p => p.id !== patientToRemove.id);
+
     updateState({ patients: newPatients, appointments: newAppointments });
 
     const remainingConflicts = dniConflicts.filter(
@@ -2149,6 +2276,7 @@ export default function App() {
             onAddNewAppointment={handleOpenNewAppointment}
             onHighlightPatient={handleHighlightPatient}
             onShowRecurringWeekAvailability={handleShowRecurringWeekAvailability}
+            onShowQuickLinks={handleShowQuickLinks}
             recurringAvailableSlots={recurringSlotsView && selectedDate && recurringSlotsView.date.toISOString().split('T')[0] === selectedDate.toISOString().split('T')[0] ? recurringSlotsView.slots : []}
             highlightedPatientId={selectedPatientId}
             multiBookedPatientIds={multiBookedPatientIds}
@@ -2169,15 +2297,29 @@ export default function App() {
       />
       <PatientRegistryModal 
         isOpen={isPatientRegistryOpen}
-        onClose={() => setPatientRegistryOpen(false)}
+        onClose={() => {
+            setPatientRegistryOpen(false);
+            setSelectedPatientForRegistry(null);
+        }}
         patients={patients}
         onDeletePatient={handleDeletePatient}
+        onUpdatePatient={handleUpdatePatient}
+        selectedPatient={selectedPatientForRegistry}
+        onSetSelectedPatient={setSelectedPatientForRegistry}
       />
       <AiAssistantModal 
         isOpen={isAiModalOpen}
         onClose={() => setAiModalOpen(false)}
         patients={patients}
         appointments={appointments}
+      />
+      <QuickLinksModal
+        isOpen={isQuickLinksModalOpen}
+        onClose={() => setQuickLinksModalOpen(false)}
+        patient={selectedPatientForQuickLinks}
+        mainDriveUrl={mainDriveUrl}
+        onSavePatientUrl={handleUpdatePatientDriveUrl}
+        onSaveMainUrl={setMainDriveUrl}
       />
       <DeleteAppointmentOptionsModal
         isOpen={isDeleteOptionsModalOpen}
