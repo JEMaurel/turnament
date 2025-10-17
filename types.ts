@@ -3,6 +3,7 @@ export interface Patient {
   name: string;
   dni?: string;
   insurance?: string;
+  insuranceId?: string;
   doctor?: string;
   treatment?: string;
   diagnosis?: string;

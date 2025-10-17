@@ -10,6 +10,7 @@ interface Patient {
   name: string;
   dni?: string;
   insurance?: string;
+  insuranceId?: string;
   doctor?: string;
   treatment?: string;
   diagnosis?: string;
@@ -63,6 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           hora: app.time,
           paciente: patient ? patient.name : 'Desconocido',
           dni: patient?.dni,
+          numero_afiliado: patient?.insuranceId,
           sesion: app.session,
           tratamiento: patient?.treatment,
           diagnostico: patient?.diagnosis,

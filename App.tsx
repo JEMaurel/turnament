@@ -32,7 +32,7 @@ const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; chi
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center" onClick={onClose}>
-      <div className="bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-2xl mx-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-3xl mx-4" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
           <h3 className="text-2xl font-bold text-white">{title}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-white">&times;</button>
@@ -180,6 +180,7 @@ const AppointmentModal: React.FC<{
     const [patientId, setPatientId] = useState<string | null>(null);
     const [session, setSession] = useState('1/10');
     const [insurance, setInsurance] = useState('');
+    const [insuranceId, setInsuranceId] = useState('');
     const [dni, setDni] = useState('');
     const [doctor, setDoctor] = useState('');
     const [treatment, setTreatment] = useState('');
@@ -198,6 +199,7 @@ const AppointmentModal: React.FC<{
                 setPatientId(existingPatient.id);
                 setSession(existingAppointment.session);
                 setInsurance(existingPatient.insurance || '');
+                setInsuranceId(existingPatient.insuranceId || '');
                 setDni(existingPatient.dni || '');
                 setDoctor(existingPatient.doctor || '');
                 setTreatment(existingPatient.treatment || '');
@@ -214,6 +216,7 @@ const AppointmentModal: React.FC<{
                 setPatientId(null);
                 setSession('1/10');
                 setInsurance('');
+                setInsuranceId('');
                 setDni('');
                 setDoctor('');
                 setTreatment('');
@@ -232,6 +235,7 @@ const AppointmentModal: React.FC<{
         if (patient) {
             setPatientId(patient.id);
             setInsurance(patient.insurance || '');
+            setInsuranceId(patient.insuranceId || '');
             setDni(patient.dni || '');
             setDoctor(patient.doctor || '');
             setTreatment(patient.treatment || '');
@@ -254,7 +258,9 @@ const AppointmentModal: React.FC<{
             id: patientId || appointmentData.patientId,
             name: patientName,
             dni: dni.trim(),
-            insurance, doctor, treatment, diagnosis, observations,
+            insurance,
+            insuranceId: insuranceId.trim(),
+            doctor, treatment, diagnosis, observations,
             driveUrl: existingPatient?.driveUrl || '',
         };
         onSave(appointmentData, patientData, recurringDays, recurringWeeks);
@@ -349,7 +355,14 @@ const AppointmentModal: React.FC<{
                         <label className="block text-sm font-medium text-slate-300">obra social</label>
                         <input type="text" value={insurance} onChange={e => setInsurance(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                     </div>
-                     <div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300">médico derivante</label>
+                        <input type="text" value={doctor} onChange={e => setDoctor(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
                         <label className="block text-sm font-medium text-slate-300">dni</label>
                         <div className="relative mt-1">
                             <input
@@ -378,16 +391,21 @@ const AppointmentModal: React.FC<{
                             </button>
                         </div>
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300">n° de afiliado</label>
+                        <input
+                            type="text"
+                            value={insuranceId}
+                            onChange={e => setInsuranceId(e.target.value)}
+                            placeholder="n° de credencial"
+                            className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"
+                        />
+                    </div>
                 </div>
                 
                 <div>
                     <label className="block text-sm font-medium text-slate-300">tratamiento</label>
                     <textarea value={treatment} onChange={e => setTreatment(e.target.value)} rows={2} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"></textarea>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-slate-300">médico derivante</label>
-                    <input type="text" value={doctor} onChange={e => setDoctor(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                 </div>
 
                 <div>
@@ -458,6 +476,7 @@ const PatientRegistryModal: React.FC<{
                         <div className="space-y-4">
                             <h3 className="text-3xl font-bold text-amber-300 border-b border-slate-700 pb-2">{selectedPatient.name}</h3>
                             <PatientDetail label="dni" value={selectedPatient.dni} />
+                            <PatientDetail label="n° de afiliado" value={selectedPatient.insuranceId} />
                             <PatientDetail label="obra social" value={selectedPatient.insurance} />
                             <PatientDetail label="médico derivante" value={selectedPatient.doctor} />
                             <PatientDetail label="tratamiento" value={selectedPatient.treatment} />
