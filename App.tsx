@@ -2267,7 +2267,7 @@ export default function App() {
                 onClick={() => setPendingTasksModalOpen(true)} 
                 className={`flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg transition-colors ${
                     pendingTasks.trim() 
-                    ? 'bg-amber-600 hover:bg-amber-500 animate-pulse' 
+                    ? 'bg-amber-600 hover:bg-amber-500' 
                     : 'bg-slate-700 hover:bg-slate-600'
                 }`}
             >
