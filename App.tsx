@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
@@ -189,43 +190,79 @@ const AppointmentModal: React.FC<{
     const [recurringDays, setRecurringDays] = useState<number[]>([]);
     const [recurringWeeks, setRecurringWeeks] = useState(3);
     const observationsInputRef = useRef<HTMLTextAreaElement>(null);
+    const patientNameInputRef = useRef<HTMLInputElement>(null);
     const [isDniCopied, setIsDniCopied] = useState(false);
+    const [initialFormData, setInitialFormData] = useState<Record<string, any> | null>(null);
     
     useEffect(() => {
         if (isOpen) {
+            let data;
             if (existingAppointment && existingPatient) {
-                setTime(existingAppointment.time);
-                setPatientName(existingPatient.name);
+                const formData = {
+                    time: existingAppointment.time,
+                    patientName: existingPatient.name,
+                    session: existingAppointment.session,
+                    insurance: existingPatient.insurance || '',
+                    insuranceId: existingPatient.insuranceId || '',
+                    dni: existingPatient.dni || '',
+                    doctor: existingPatient.doctor || '',
+                    treatment: existingPatient.treatment || '',
+                    diagnosis: existingPatient.diagnosis || '',
+                    observations: existingPatient.observations || '',
+                    recurringDays: [],
+                    recurringWeeks: 0,
+                };
+                setTime(formData.time);
+                setPatientName(formData.patientName);
                 setPatientId(existingPatient.id);
-                setSession(existingAppointment.session);
-                setInsurance(existingPatient.insurance || '');
-                setInsuranceId(existingPatient.insuranceId || '');
-                setDni(existingPatient.dni || '');
-                setDoctor(existingPatient.doctor || '');
-                setTreatment(existingPatient.treatment || '');
-                setDiagnosis(existingPatient.diagnosis || '');
-                setObservations(existingPatient.observations || '');
-                setRecurringDays([]);
-                setRecurringWeeks(0);
+                setSession(formData.session);
+                setInsurance(formData.insurance);
+                setInsuranceId(formData.insuranceId);
+                setDni(formData.dni);
+                setDoctor(formData.doctor);
+                setTreatment(formData.treatment);
+                setDiagnosis(formData.diagnosis);
+                setObservations(formData.observations);
+                setRecurringDays(formData.recurringDays);
+                setRecurringWeeks(formData.recurringWeeks);
+                data = formData;
+
                 if (existingPatient.observations) {
                     setTimeout(() => observationsInputRef.current?.focus(), 100);
                 }
             } else {
-                setTime(defaultTime);
-                setPatientName('');
+                const formData = {
+                    time: defaultTime,
+                    patientName: '',
+                    session: '1/10',
+                    insurance: '',
+                    insuranceId: '',
+                    dni: '',
+                    doctor: '',
+                    treatment: '',
+                    diagnosis: '',
+                    observations: '',
+                    recurringDays: [],
+                    recurringWeeks: 3,
+                };
+                setTime(formData.time);
+                setPatientName(formData.patientName);
                 setPatientId(null);
-                setSession('1/10');
-                setInsurance('');
-                setInsuranceId('');
-                setDni('');
-                setDoctor('');
-                setTreatment('');
-                setDiagnosis('');
-                setObservations('');
-                setRecurringDays([]);
-                setRecurringWeeks(3);
+                setSession(formData.session);
+                setInsurance(formData.insurance);
+                setInsuranceId(formData.insuranceId);
+                setDni(formData.dni);
+                setDoctor(formData.doctor);
+                setTreatment(formData.treatment);
+                setDiagnosis(formData.diagnosis);
+                setObservations(formData.observations);
+                setRecurringDays(formData.recurringDays);
+                setRecurringWeeks(formData.recurringWeeks);
+                data = formData;
+                setTimeout(() => patientNameInputRef.current?.focus(), 100);
             }
-             setIsDniCopied(false);
+            setInitialFormData(data);
+            setIsDniCopied(false);
         }
     }, [existingAppointment, existingPatient, isOpen, defaultTime]);
 
@@ -245,8 +282,50 @@ const AppointmentModal: React.FC<{
             setPatientId(null);
         }
     }
+    
+    const hasFormChanged = useCallback(() => {
+        if (!initialFormData) return false;
+        // Sort arrays before comparison to handle order differences
+        const initialRecurringDays = JSON.stringify([...initialFormData.recurringDays].sort());
+        const currentRecurringDays = JSON.stringify([...recurringDays].sort());
+
+        return (
+            initialFormData.time !== time ||
+            initialFormData.patientName !== patientName ||
+            initialFormData.session !== session ||
+            initialFormData.insurance !== insurance ||
+            initialFormData.insuranceId !== insuranceId ||
+            initialFormData.dni !== dni ||
+            initialFormData.doctor !== doctor ||
+            initialFormData.treatment !== treatment ||
+            initialFormData.diagnosis !== diagnosis ||
+            initialFormData.observations !== observations ||
+            initialFormData.recurringWeeks !== recurringWeeks ||
+            initialRecurringDays !== currentRecurringDays
+        );
+    }, [initialFormData, time, patientName, session, insurance, insuranceId, dni, doctor, treatment, diagnosis, observations, recurringDays, recurringWeeks]);
+
 
     const handleSave = () => {
+        const formChanged = hasFormChanged();
+
+        if (existingAppointment) {
+            if (!formChanged) {
+                onClose();
+                return;
+            }
+        } else {
+            if (!formChanged) {
+                onClose();
+                return;
+            }
+            if (patientName.trim() === '') {
+                if (!window.confirm("desea guardar el turno sin nombre de paciente?")) {
+                    return;
+                }
+            }
+        }
+
         const appointmentData: Appointment = {
             id: existingAppointment?.id || `app-${Date.now()}`,
             patientId: patientId || `pat-${Date.now()}`,
@@ -265,6 +344,17 @@ const AppointmentModal: React.FC<{
         };
         onSave(appointmentData, patientData, recurringDays, recurringWeeks);
         onClose();
+    };
+
+    const handleKeyDown = (event: React.KeyboardEvent) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            const activeElement = document.activeElement as HTMLElement;
+            if (activeElement && activeElement.tagName.toLowerCase() === 'button') {
+                return;
+            }
+            event.preventDefault();
+            handleSave();
+        }
     };
 
     const handleCopyDni = () => {
@@ -287,7 +377,7 @@ const AppointmentModal: React.FC<{
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={existingAppointment ? 'editar turno' : 'nuevo turno'}>
-            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2" onKeyDown={handleKeyDown}>
                 <h4 className="text-lg font-semibold text-cyan-400 border-b border-slate-700 pb-2">datos del turno</h4>
                 <div className="grid grid-cols-2 gap-4">
                     <StepperInput
@@ -344,7 +434,7 @@ const AppointmentModal: React.FC<{
                 <h4 className="text-lg font-semibold text-cyan-400 border-b border-slate-700 pb-2 pt-4">datos del paciente</h4>
                 <div>
                     <label className="block text-sm font-medium text-slate-300">nombre del paciente</label>
-                    <input type="text" list="patients-list" value={patientName} onChange={e => handlePatientSelect(e.target.value)} placeholder="escriba o seleccione un paciente" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1 focus:ring-cyan-500 focus:border-cyan-500"/>
+                    <input ref={patientNameInputRef} type="text" list="patients-list" value={patientName} onChange={e => handlePatientSelect(e.target.value)} placeholder="escriba o seleccione un paciente" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1 focus:ring-cyan-500 focus:border-cyan-500"/>
                     <datalist id="patients-list">
                         {patients.map(p => <option key={p.id} value={p.name} />)}
                     </datalist>
@@ -410,7 +500,7 @@ const AppointmentModal: React.FC<{
 
                 <div>
                     <label className="block text-sm font-medium text-slate-300">diagnóstico (dx)</label>
-                    <textarea value={diagnosis} onChange={e => setDiagnosis(e.target.value)} rows={2} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
+                    <textarea value={diagnosis} onChange={e => setDiagnosis(e.target.value)} rows={1} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                 </div>
 
                  <div>
