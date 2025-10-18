@@ -1920,17 +1920,21 @@ export default function App() {
     // FIX: Explicitly typing `app` prevents TypeScript from inferring it as `unknown`.
     const newAppointments = appointments.filter((app: Appointment) => {
         if (app.patientId !== selectedPatientId) {
-            return true;
+            return true; // Keep appointments for other patients
         }
         
         const appDate = new Date(`${app.date}T12:00:00`);
-        const isFutureDate = app.date > targetDateString;
+        const isOnOrAfterTargetDate = app.date >= targetDateString; // CHANGED: from > to >= to include current day
         const isSameDayOfWeek = appDate.getDay() === targetDayOfWeek;
 
-        if (isFutureDate && isSameDayOfWeek) {
+        // If the appointment is for the selected patient, on the same day of the week,
+        // and on or after the target date, it should be deleted.
+        // We return `false` to filter it out.
+        if (isOnOrAfterTargetDate && isSameDayOfWeek) {
             return false;
         }
         
+        // Otherwise, keep the appointment.
         return true;
     });
 
