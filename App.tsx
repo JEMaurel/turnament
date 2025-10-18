@@ -192,6 +192,7 @@ const AppointmentModal: React.FC<{
     const observationsInputRef = useRef<HTMLTextAreaElement>(null);
     const patientNameInputRef = useRef<HTMLInputElement>(null);
     const [isDniCopied, setIsDniCopied] = useState(false);
+    const [isInsuranceIdCopied, setIsInsuranceIdCopied] = useState(false);
     const [initialFormData, setInitialFormData] = useState<Record<string, any> | null>(null);
     
     useEffect(() => {
@@ -263,6 +264,7 @@ const AppointmentModal: React.FC<{
             }
             setInitialFormData(data);
             setIsDniCopied(false);
+            setIsInsuranceIdCopied(false);
         }
     }, [existingAppointment, existingPatient, isOpen, defaultTime]);
 
@@ -364,6 +366,16 @@ const AppointmentModal: React.FC<{
             setTimeout(() => setIsDniCopied(false), 2000);
         }).catch(err => {
             console.error('Failed to copy DNI: ', err);
+        });
+    };
+
+    const handleCopyInsuranceId = () => {
+        if (!insuranceId) return;
+        navigator.clipboard.writeText(insuranceId).then(() => {
+            setIsInsuranceIdCopied(true);
+            setTimeout(() => setIsInsuranceIdCopied(false), 2000);
+        }).catch(err => {
+            console.error('Failed to copy Insurance ID: ', err);
         });
     };
 
@@ -483,13 +495,32 @@ const AppointmentModal: React.FC<{
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-300">n° de afiliado</label>
-                        <input
-                            type="text"
-                            value={insuranceId}
-                            onChange={e => setInsuranceId(e.target.value)}
-                            placeholder="n° de credencial"
-                            className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"
-                        />
+                        <div className="relative mt-1">
+                            <input
+                                type="text"
+                                value={insuranceId}
+                                onChange={e => setInsuranceId(e.target.value)}
+                                placeholder="n° de credencial"
+                                className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 pr-10"
+                            />
+                             <button
+                                onClick={handleCopyInsuranceId}
+                                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white transition-colors"
+                                aria-label="copiar n° de afiliado al portapapeles"
+                                title="copiar n° de afiliado"
+                            >
+                                {isInsuranceIdCopied ? (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                                    </svg>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
