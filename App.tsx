@@ -1810,9 +1810,22 @@ export default function App() {
   }, [patients, appointments, updateState]);
 
   const handleUpdateAppointmentStatus = useCallback((appointmentId: string, newStatus: PedidoStatus) => {
-    const newAppointments = appointments.map(app => 
-        app.id === appointmentId ? { ...app, pedidoStatus: newStatus } : app
-    );
+    const sourceAppointment = appointments.find(app => app.id === appointmentId);
+    if (!sourceAppointment) return;
+
+    const { patientId, date, time } = sourceAppointment;
+    const sourceDateTime = `${date}T${time}`;
+
+    const newAppointments = appointments.map(app => {
+      if (app.patientId === patientId) {
+        const appDateTime = `${app.date}T${app.time}`;
+        if (appDateTime >= sourceDateTime) {
+          return { ...app, pedidoStatus: newStatus };
+        }
+      }
+      return app;
+    });
+
     updateState({ patients, appointments: newAppointments });
   }, [patients, appointments, updateState]);
 
@@ -1944,6 +1957,15 @@ export default function App() {
           const renumberedAppointments = renumberFutureSessions(updatedAppointments, appointmentData);
           updateState({ patients: currentPatients, appointments: renumberedAppointments });
       } else {
+          let statusToInherit = {};
+          const latestAppointmentForPatient = currentAppointments
+            .filter((a: Appointment) => a.patientId === appointmentData.patientId)
+            .sort((a, b) => `${b.date}T${b.time}`.localeCompare(`${a.date}T${a.time}`))
+            [0];
+          if (latestAppointmentForPatient && latestAppointmentForPatient.pedidoStatus) {
+              statusToInherit = latestAppointmentForPatient.pedidoStatus;
+          }
+
           let newAppointments: Appointment[] = [];
           
           if (recurringDays.length > 0 && selectedDate && recurringWeeks >= 0) {
@@ -1959,11 +1981,12 @@ export default function App() {
                           ...appointmentData,
                           id: `app-${Date.now()}-${potentialDate.toISOString()}-${i}`,
                           date: potentialDate.toISOString().split('T')[0],
+                          pedidoStatus: statusToInherit,
                       });
                   }
               }
           } else {
-              newAppointments.push(appointmentData);
+              newAppointments.push({ ...appointmentData, pedidoStatus: statusToInherit });
           }
 
           if (newAppointments.length > 1) {
@@ -2188,6 +2211,7 @@ export default function App() {
         return b.time.localeCompare(a.time);
       })[0];
       
+    const statusToInherit = latestAppointment?.pedidoStatus || {};
     let baseSessionNumber = 0;
     let sessionSuffix = '';
     
@@ -2213,6 +2237,7 @@ export default function App() {
                 ...app,
                 id: `app-${Date.now()}-${nextWeekDate.toISOString()}-${Math.random()}`,
                 date: nextWeekDate.toISOString().split('T')[0],
+                pedidoStatus: statusToInherit,
             };
         })
         .sort((a, b) => {
@@ -2285,6 +2310,7 @@ export default function App() {
             return b.time.localeCompare(a.time);
         })[0];
     
+    const statusToInherit = latestAppointment?.pedidoStatus || {};
     let baseSessionNumber = 0;
     let sessionSuffix = '';
     
@@ -2313,6 +2339,7 @@ export default function App() {
             id: `app-${Date.now()}-${nextWeekDate.toISOString()}-${index}`,
             date: nextWeekDate.toISOString().split('T')[0],
             session: `${newSessionNumber}${sessionSuffix}`,
+            pedidoStatus: statusToInherit,
         };
     });
 
