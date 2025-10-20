@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
@@ -970,9 +971,9 @@ const StorageIndicator: React.FC<{
     'bg-green-500';
 
   return (
-    <div className="w-48 bg-slate-700 p-2 rounded-lg" title={`usando ${usedMB} mb de ${maxMB} mb`}>
+    <div className="w-20 bg-slate-700 p-2 rounded-lg" title={`usando ${usedMB} mb de ${maxMB} mb`}>
       <div className="flex justify-between items-center text-xs text-slate-400 mb-1">
-        <span>almacenamiento local</span>
+        <span>uso</span>
         <span>{percentage.toFixed(0)}%</span>
       </div>
       <div className="w-full bg-slate-800 rounded-full h-2.5">
