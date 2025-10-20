@@ -20,20 +20,25 @@ interface AppointmentListProps {
 }
 
 const PedidoStatusIndicator: React.FC<{ status?: PedidoStatus }> = ({ status }) => {
-  if (!status || (!status.rojo && !status.naranja && !status.verde)) {
-    return null; // Don't render anything if no primary status is set
-  }
+  if (!status) return null;
 
-  const dotColorClass = status.verde ? 'bg-green-500' :
-                        status.naranja ? 'bg-orange-500' :
-                        status.rojo ? 'bg-red-500' :
-                        '';
+  let dotColorClass = '';
+  // Priority: Verde > Naranja > Rojo
+  if (status.verde === 'en-mano') {
+    dotColorClass = 'bg-green-700'; // Verde militar
+  } else if (status.verde === 'autorizado') {
+    dotColorClass = 'bg-green-400'; // Verde loro
+  } else if (status.naranja) {
+    dotColorClass = 'bg-orange-500';
+  } else if (status.rojo) {
+    dotColorClass = 'bg-red-500';
+  }
 
   const haloColorClass = status.azul === 'refuerzo' ? 'ring-cyan-400' :
                          status.azul === 'refuerzo-en-tramite' ? 'ring-blue-500' :
                          '';
   
-  if (!dotColorClass) return null;
+  if (!dotColorClass) return null; // Don't render if no primary status is set
 
   return (
     <div className="relative w-4 h-4" title="estado del pedido">
@@ -77,7 +82,7 @@ const PedidoStatusEditor: React.FC<{
   );
 
   return (
-    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 z-20 bg-slate-900/90 backdrop-blur-sm border border-slate-700 rounded-lg shadow-2xl p-3">
+    <div className="absolute top-full right-0 mt-2 w-64 z-20 bg-slate-900/90 backdrop-blur-sm border border-slate-700 rounded-lg shadow-2xl p-3">
       <div className="space-y-2">
         <StatusButton label="sin pedido" colorClass="bg-red-500" isActive={!!status.rojo} onClick={() => handleToggle('rojo')} />
         <StatusButton label="pedido en trámite" colorClass="bg-orange-500" isActive={!!status.naranja} onClick={() => handleToggle('naranja')} />
@@ -124,7 +129,6 @@ const AppointmentRow: React.FC<{
         <div className="font-mono text-lg text-cyan-400">{appointment.time}</div>
         <div className={`font-semibold truncate text-xl ${isMultiBooked ? 'text-red-400' : 'text-amber-300'}`}>{appointment.patientName}</div>
         <div className="flex items-center gap-3 text-slate-400">
-          <PedidoStatusIndicator status={appointment.pedidoStatus} />
           <span className="text-base font-mono">{appointment.session}</span>
           {appointment.observations && (
               <button
@@ -151,14 +155,15 @@ const AppointmentRow: React.FC<{
               <div className="w-4 h-4 bg-indigo-400 rounded-full"></div>
           </button>
         </div>
-        <div className="flex justify-end items-center gap-2">
+        <div className="flex justify-end items-center gap-3">
+          <PedidoStatusIndicator status={appointment.pedidoStatus} />
           <button
             onClick={handleToggleEditor}
             className="p-2 rounded-full hover:bg-slate-600 transition-colors"
             aria-label="gestionar estado del pedido"
             title="gestionar estado del pedido"
           >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
                 <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                 <path fillRule="evenodd" d="M.458 10C3.732 4.943 9.522 3 10 3s6.268 1.943 9.542 7c-3.274 5.057-9.064 7-9.542 7S3.732 15.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
               </svg>
@@ -169,7 +174,7 @@ const AppointmentRow: React.FC<{
             aria-label={`ver accesos directos de ${appointment.patientName}`}
             title="ver accesos directos"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-cyan-400" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-cyan-400" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
               <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
             </svg>
           </button>
