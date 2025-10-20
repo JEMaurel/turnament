@@ -11,12 +11,20 @@ export interface Patient {
   driveUrl?: string;
 }
 
+export interface PedidoStatus {
+  rojo?: boolean;
+  naranja?: boolean;
+  verde?: 'autorizado' | 'en-mano';
+  azul?: 'refuerzo' | 'refuerzo-en-tramite';
+}
+
 export interface Appointment {
   id: string;
   patientId: string;
   date: string; // ISO string for date e.g., "2024-07-28"
   time: string; // e.g., "09:00"
   session: string; // e.g., "5/10"
+  pedidoStatus?: PedidoStatus;
 }
 
 // FIX: Centralized AppointmentWithDetails type to resolve type inference issues across components.

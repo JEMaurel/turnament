@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffe
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
 // FIX: Imported the centralized AppointmentWithDetails type to ensure type consistency.
-import type { Patient, Appointment, AppointmentWithDetails } from './types';
+import type { Patient, Appointment, AppointmentWithDetails, PedidoStatus } from './types';
 import { getAiAssistance } from './services/geminiService';
 
 // New types for the Patient Schedule Viewer
@@ -335,6 +335,7 @@ const AppointmentModal: React.FC<{
             date: selectedDate.toISOString().split('T')[0],
             time,
             session,
+            pedidoStatus: existingAppointment?.pedidoStatus || {},
         };
         const patientData: Patient = {
             id: patientId || appointmentData.patientId,
@@ -1240,6 +1241,7 @@ export default function App() {
   const [isDeleteOptionsModalOpen, setDeleteOptionsModalOpen] = useState(false);
   const [dateForDeletion, setDateForDeletion] = useState<Date | null>(null);
   const [isPendingTasksModalOpen, setPendingTasksModalOpen] = useState(false);
+  const [editingStatusFor, setEditingStatusFor] = useState<string | null>(null);
   
   // New state for recurring slots viewer
   const [recurringSlotsView, setRecurringSlotsView] = useState<{ date: Date; slots: string[] } | null>(null);
@@ -1521,6 +1523,7 @@ export default function App() {
   }, [appointments]);
 
   const handleDateClick = useCallback((date: Date) => {
+    setEditingStatusFor(null);
     setRecurringHighlightDays([]); // Clear green highlights on any date click
     const dateString = date.toISOString().split('T')[0];
 
@@ -1584,6 +1587,7 @@ export default function App() {
     setRecurringHighlightDays(availableDays);
     setSelectedPatientId(null);
     setRecurringSlotsView(null);
+    setEditingStatusFor(null);
   }, [isSlotRecurring]);
 
   // FIX: Updated handler to use the centralized AppointmentWithDetails type.
@@ -1591,6 +1595,7 @@ export default function App() {
       setSelectedPatientId(appointment.patientId);
       setEditingAppointment(appointment);
       setAppointmentModalOpen(true);
+      setEditingStatusFor(null);
   }, []);
 
   const handleHighlightPatient = useCallback((patientId: string, time: string) => {
@@ -1598,6 +1603,7 @@ export default function App() {
     if (selectedPatientId === patientId) {
         setSelectedPatientId(null);
         setRecurringHighlightDays([]);
+        setEditingStatusFor(null);
         return;
     }
 
@@ -1619,6 +1625,7 @@ export default function App() {
     }
     
     setRecurringSlotsView(null); // Close recurring view
+    setEditingStatusFor(null);
   }, [selectedPatientId, selectedDate, isSlotRecurring]);
 
   const handleOpenNewAppointment = useCallback((time?: string) => {
@@ -1626,6 +1633,7 @@ export default function App() {
     setEditingAppointment(null);
     setDefaultAppointmentTime(time || '11:00');
     setAppointmentModalOpen(true);
+    setEditingStatusFor(null);
   }, [selectedDate]);
 
   const handleShowQuickLinks = useCallback((patientId: string) => {
@@ -1633,6 +1641,7 @@ export default function App() {
     if (patient) {
         setSelectedPatientForQuickLinks(patient);
         setQuickLinksModalOpen(true);
+        setEditingStatusFor(null);
     }
   }, [patients]);
 
@@ -1641,6 +1650,13 @@ export default function App() {
         p.id === patientId ? { ...p, driveUrl: newUrl } : p
     );
     updateState({ patients: newPatients, appointments });
+  }, [patients, appointments, updateState]);
+
+  const handleUpdateAppointmentStatus = useCallback((appointmentId: string, newStatus: PedidoStatus) => {
+    const newAppointments = appointments.map(app => 
+        app.id === appointmentId ? { ...app, pedidoStatus: newStatus } : app
+    );
+    updateState({ patients, appointments: newAppointments });
   }, [patients, appointments, updateState]);
 
   const handleSaveAppointment = (appointmentData: Appointment, patientData: Patient, recurringDays: number[], recurringWeeks: number) => {
@@ -1852,6 +1868,7 @@ export default function App() {
       const newAppointments = appointments.filter((a: Appointment) => a.id !== appointmentId);
       updateState({ patients, appointments: newAppointments });
     }
+    setEditingStatusFor(null);
   }, [patients, appointments, updateState]);
 
   const handleDeletePatient = useCallback((patientId: string) => {
@@ -2304,6 +2321,11 @@ export default function App() {
             if (patientSearchRef.current && !patientSearchRef.current.contains(event.target as Node)) {
                 setPatientSearchTerm('');
             }
+            // Close status editor if clicking outside of the appointment list area
+            const appointmentListEl = document.querySelector('.appointment-list-container');
+            if (appointmentListEl && !appointmentListEl.contains(event.target as Node)) {
+                setEditingStatusFor(null);
+            }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => {
@@ -2464,7 +2486,7 @@ export default function App() {
             <div className="w-0.5 h-1/2 bg-slate-700 group-hover:bg-cyan-500 transition-colors rounded-full"></div>
         </div>
 
-        <div className="flex-1 min-h-0 min-w-0">
+        <div className="flex-1 min-h-0 min-w-0 appointment-list-container">
           <AppointmentList
             selectedDate={selectedDate}
             appointments={appointmentsForSelectedDay}
@@ -2474,9 +2496,12 @@ export default function App() {
             onHighlightPatient={handleHighlightPatient}
             onShowRecurringWeekAvailability={handleShowRecurringWeekAvailability}
             onShowQuickLinks={handleShowQuickLinks}
+            onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
             recurringAvailableSlots={recurringSlotsView && selectedDate && recurringSlotsView.date.toISOString().split('T')[0] === selectedDate.toISOString().split('T')[0] ? recurringSlotsView.slots : []}
             highlightedPatientId={selectedPatientId}
             multiBookedPatientIds={multiBookedPatientIds}
+            editingStatusFor={editingStatusFor}
+            onSetEditingStatusFor={setEditingStatusFor}
           />
         </div>
       </main>
