@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 // FIX: Imported the centralized AppointmentWithDetails type to ensure type consistency.
 import type { Appointment, Patient, AppointmentWithDetails, PedidoStatus } from '../types';
 
@@ -53,6 +53,31 @@ const PedidoStatusEditor: React.FC<{
   onClose: () => void;
 }> = ({ appointment, onUpdate, onClose }) => {
   const status = appointment.pedidoStatus || {};
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Focus the component when it mounts to establish a focus context.
+    editorRef.current?.focus();
+  }, []);
+
+  // This is more robust because it captures the key press regardless of which
+  // element inside the editor has focus (e.g., after clicking a button).
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    // Use capture phase to intercept the event before it triggers default
+    // actions like re-clicking a focused button on 'Enter'.
+    document.addEventListener('keydown', handleGlobalKeyDown, true);
+    
+    return () => {
+      document.removeEventListener('keydown', handleGlobalKeyDown, true);
+    };
+  }, [onClose]);
 
   const handleToggle = (key: 'rojo' | 'naranja') => {
     onUpdate(appointment.id, { ...status, [key]: !status[key] });
@@ -82,7 +107,11 @@ const PedidoStatusEditor: React.FC<{
   );
 
   return (
-    <div className="absolute top-full right-0 mt-2 w-64 z-20 bg-slate-900/90 backdrop-blur-sm border border-slate-700 rounded-lg shadow-2xl p-3">
+    <div
+      ref={editorRef}
+      tabIndex={-1}
+      className="absolute top-full right-0 mt-2 w-64 z-20 bg-slate-900/90 backdrop-blur-sm border border-slate-700 rounded-lg shadow-2xl p-3 outline-none focus:ring-2 focus:ring-cyan-500"
+    >
       <div className="space-y-2">
         <StatusButton label="sin pedido" colorClass="bg-red-500" isActive={!!status.rojo} onClick={() => handleToggle('rojo')} />
         <StatusButton label="pedido en trámite" colorClass="bg-orange-500" isActive={!!status.naranja} onClick={() => handleToggle('naranja')} />
