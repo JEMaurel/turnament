@@ -27,6 +27,13 @@ interface AppState {
   appointments: Appointment[];
 }
 
+// New type for Global Quick Links
+interface QuickLink {
+  id: string;
+  name: string;
+  url: string;
+}
+
 
 // Modal Components defined within App.tsx to easily access state and handlers
 
@@ -1117,6 +1124,136 @@ const QuickLinksModal: React.FC<{
     );
 };
 
+const GlobalLinksModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  links: QuickLink[];
+  onSaveLinks: (newLinks: QuickLink[]) => void;
+}> = ({ isOpen, onClose, links, onSaveLinks }) => {
+  const [newLinkName, setNewLinkName] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
+  const [editingLinkName, setEditingLinkName] = useState('');
+  const [editingLinkUrl, setEditingLinkUrl] = useState('');
+  
+  const handleAddLink = () => {
+    let urlToAdd = newLinkUrl.trim();
+    if (!newLinkName.trim() || !urlToAdd) return;
+    
+    if (!urlToAdd.startsWith('http://') && !urlToAdd.startsWith('https://')) {
+        urlToAdd = 'https://' + urlToAdd;
+    }
+
+    try {
+        new URL(urlToAdd);
+    } catch (_) {
+        alert('Por favor ingrese una URL válida (ej. https://www.google.com)');
+        return;
+    }
+
+    const newLink: QuickLink = {
+      id: `link-${Date.now()}`,
+      name: newLinkName.trim(),
+      url: urlToAdd,
+    };
+    onSaveLinks([...links, newLink]);
+    setNewLinkName('');
+    setNewLinkUrl('');
+  };
+
+  const handleDeleteLink = (id: string) => {
+    if (window.confirm('¿Está seguro de que quiere eliminar este enlace?')) {
+      onSaveLinks(links.filter(link => link.id !== id));
+    }
+  };
+
+  const handleStartEdit = (link: QuickLink) => {
+    setEditingLinkId(link.id);
+    setEditingLinkName(link.name);
+    setEditingLinkUrl(link.url);
+  };
+  
+  const handleCancelEdit = () => {
+    setEditingLinkId(null);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingLinkId) return;
+    onSaveLinks(links.map(link => 
+      link.id === editingLinkId 
+        ? { ...link, name: editingLinkName, url: editingLinkUrl }
+        : link
+    ));
+    setEditingLinkId(null);
+  };
+  
+  const getFaviconUrl = (url: string) => {
+      try {
+          const domain = new URL(url).hostname;
+          return `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${domain}&size=32`;
+      } catch (e) {
+          return '';
+      }
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="enlaces rápidos">
+      <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+        <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700 space-y-3">
+            <h4 className="text-lg font-semibold text-cyan-400">agregar nuevo enlace</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="text" value={newLinkName} onChange={e => setNewLinkName(e.target.value)} placeholder="nombre (ej. google)" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"/>
+                <input type="text" value={newLinkUrl} onChange={e => setNewLinkUrl(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleAddLink()} placeholder="url (ej. google.com)" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"/>
+            </div>
+            <div className="flex justify-end">
+                <button onClick={handleAddLink} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">agregar</button>
+            </div>
+        </div>
+        
+        <div className="space-y-2">
+            {links.map(link => (
+                <div key={link.id}>
+                    {editingLinkId === link.id ? (
+                        <div className="p-3 bg-slate-700 rounded-lg space-y-3">
+                            <input type="text" value={editingLinkName} onChange={e => setEditingLinkName(e.target.value)} className="w-full bg-slate-600 border border-slate-500 rounded-md p-2"/>
+                            <input type="text" value={editingLinkUrl} onChange={e => setEditingLinkUrl(e.target.value)} className="w-full bg-slate-600 border border-slate-500 rounded-md p-2"/>
+                            <div className="flex justify-end gap-2">
+                                <button onClick={handleCancelEdit} className="bg-slate-500 hover:bg-slate-400 text-white font-bold py-1 px-3 rounded-lg">cancelar</button>
+                                <button onClick={handleSaveEdit} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg">guardar</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="group flex items-center gap-4 p-3 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+                            <img src={getFaviconUrl(link.url)} alt="" className="w-6 h-6 flex-shrink-0 bg-slate-700 rounded" onError={(e) => { e.currentTarget.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; e.currentTarget.style.opacity = '0.1'; }} />
+                            <a href={link.url} target="_blank" rel="noopener noreferrer" className="flex-grow truncate">
+                                <p className="font-semibold text-white">{link.name}</p>
+                                <p className="text-sm text-slate-400 truncate">{link.url}</p>
+                            </a>
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => handleStartEdit(link)} className="p-2 rounded-full hover:bg-slate-600">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2-2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
+                                </button>
+                                <button onClick={() => handleDeleteLink(link.id)} className="p-2 rounded-full text-red-400 hover:bg-red-900/50">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ))}
+            {links.length === 0 && <p className="text-slate-400 text-center py-4">no hay enlaces guardados.</p>}
+        </div>
+      </div>
+       <div className="flex justify-end pt-4 mt-4 border-t border-slate-700">
+        <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+          cerrar
+        </button>
+      </div>
+    </Modal>
+  );
+};
+
+
 const PendingTasksModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -1181,6 +1318,17 @@ export default function App() {
   const { patients, appointments } = history[historyIndex];
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
+  
+  const [globalLinks, setGlobalLinks] = useState<QuickLink[]>(() => {
+    try {
+        const savedLinks = window.localStorage.getItem('consultorio-globalLinks');
+        return savedLinks ? JSON.parse(savedLinks) : [];
+    } catch (error) {
+        console.error("Error loading global links from localStorage:", error);
+        return [];
+    }
+  });
+
 
   // Function to update state and record history
   const updateState = useCallback((newState: AppState) => {
@@ -1221,6 +1369,14 @@ export default function App() {
     window.localStorage.setItem('consultorio-mainDriveUrl', mainDriveUrl);
   }, [mainDriveUrl]);
 
+  useEffect(() => {
+    try {
+        window.localStorage.setItem('consultorio-globalLinks', JSON.stringify(globalLinks));
+    } catch (error) {
+        console.error("Error saving global links to localStorage:", error);
+    }
+  }, [globalLinks]);
+
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
   // Resizing State
@@ -1231,6 +1387,7 @@ export default function App() {
   // Modal States
   const [isAppointmentModalOpen, setAppointmentModalOpen] = useState(false);
   const [isQuickLinksModalOpen, setQuickLinksModalOpen] = useState(false);
+  const [isGlobalLinksModalOpen, setGlobalLinksModalOpen] = useState(false);
   const [selectedPatientForQuickLinks, setSelectedPatientForQuickLinks] = useState<Patient | null>(null);
   // FIX: Updated state to use the centralized AppointmentWithDetails type.
   const [editingAppointment, setEditingAppointment] = useState<AppointmentWithDetails | null>(null);
@@ -2411,6 +2568,10 @@ export default function App() {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0115 11h1c.414 0 .79.122 1.11.325a6.002 6.002 0 015.74 4.901A1 1 0 0121.82 18H15.07a3.001 3.001 0 01-2.14 2H10a1 1 0 01-1-1v-1a1 1 0 011-1h2.071a3.001 3.001 0 01-.141-1z" /></svg>
                 <span>pacientes</span>
             </button>
+            <button onClick={() => setGlobalLinksModalOpen(true)} title="ver enlaces rápidos" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" /></svg>
+                <span>enlaces</span>
+            </button>
             <button 
                 onClick={() => setPendingTasksModalOpen(true)} 
                 className={`flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg transition-colors ${
@@ -2563,6 +2724,12 @@ export default function App() {
         onClose={() => setDniConflictModalOpen(false)}
         conflict={dniConflicts[0] || null}
         onUnify={handleUnifyConflict}
+      />
+      <GlobalLinksModal
+        isOpen={isGlobalLinksModalOpen}
+        onClose={() => setGlobalLinksModalOpen(false)}
+        links={globalLinks}
+        onSaveLinks={setGlobalLinks}
       />
       <PendingTasksModal
         isOpen={isPendingTasksModalOpen}
