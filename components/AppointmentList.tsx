@@ -222,7 +222,7 @@ const AppointmentRow: React.FC<{
             )}
           </button>
 
-          <div className={`font-semibold truncate text-xl ml-3 ${isMultiBooked ? 'text-red-400' : 'text-amber-300'}`}>{appointment.patientName}</div>
+          <div className={`font-semibold truncate text-xl ml-12 ${isMultiBooked ? 'text-red-400' : 'text-amber-300'}`}>{appointment.patientName}</div>
         </div>
 
         <div className="flex items-center gap-3 text-slate-400">
