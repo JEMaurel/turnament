@@ -15,7 +15,7 @@ export interface Patient {
 export interface PedidoStatus {
   rojo?: boolean;
   naranja?: boolean;
-  verde?: 'autorizado' | 'en-mano';
+  verde?: 'autorizado' | 'en-mano' | 'firmado';
   azul?: 'refuerzo' | 'refuerzo-en-tramite';
 }
 

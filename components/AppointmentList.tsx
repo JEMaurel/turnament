@@ -25,7 +25,9 @@ const PedidoStatusIndicator: React.FC<{ status?: PedidoStatus }> = ({ status }) 
 
   let dotColorClass = '';
   // Priority: Verde > Naranja > Rojo
-  if (status.verde === 'en-mano') {
+  if (status.verde === 'firmado') {
+    dotColorClass = 'bg-green-900'; // Verde oscuro/firmado
+  } else if (status.verde === 'en-mano') {
     dotColorClass = 'bg-green-700'; // Verde militar
   } else if (status.verde === 'autorizado') {
     dotColorClass = 'bg-green-400'; // Verde loro
@@ -43,7 +45,13 @@ const PedidoStatusIndicator: React.FC<{ status?: PedidoStatus }> = ({ status }) 
 
   return (
     <div className="relative w-4 h-4" title="estado del pedido">
-      <div className={`w-full h-full rounded-full ${dotColorClass} ${haloColorClass ? `ring-2 ring-offset-2 ring-offset-slate-800 ${haloColorClass}` : ''}`}></div>
+      <div className={`w-full h-full rounded-full flex items-center justify-center ${dotColorClass} ${haloColorClass ? `ring-2 ring-offset-2 ring-offset-slate-800 ${haloColorClass}` : ''}`}>
+        {status.verde === 'firmado' && (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </div>
     </div>
   );
 };
@@ -88,6 +96,7 @@ const PedidoStatusEditor: React.FC<{
     let newVerde: PedidoStatus['verde'];
     if (!status.verde) newVerde = 'autorizado';
     else if (status.verde === 'autorizado') newVerde = 'en-mano';
+    else if (status.verde === 'en-mano') newVerde = 'firmado';
     else newVerde = undefined;
     onUpdate(appointment.id, { ...status, verde: newVerde });
   };
@@ -118,8 +127,26 @@ const PedidoStatusEditor: React.FC<{
         <StatusButton label="pedido en trámite" colorClass="bg-orange-500" isActive={!!status.naranja} onClick={() => handleToggle('naranja')} />
         
         <div className="w-full flex items-center gap-3 p-2 rounded-md bg-slate-700 hover:bg-slate-600 cursor-pointer" onClick={handleCycleVerde}>
-            <div className={`w-4 h-4 rounded-full transition-colors ${status.verde === 'autorizado' ? 'bg-green-400' : status.verde === 'en-mano' ? 'bg-green-700' : 'bg-gray-500 opacity-40'}`}></div>
-            <span>{status.verde === 'autorizado' ? 'pedido autorizado' : status.verde === 'en-mano' ? 'pedido en mano' : 'pedido (apagado)'}</span>
+            <div className={`w-4 h-4 rounded-full transition-colors flex items-center justify-center ${
+              status.verde === 'firmado' ? 'bg-green-900' :
+              status.verde === 'en-mano' ? 'bg-green-700' :
+              status.verde === 'autorizado' ? 'bg-green-400' :
+              'bg-gray-500 opacity-40'
+            }`}>
+              {status.verde === 'firmado' && (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <span>
+              {
+                status.verde === 'firmado' ? 'pedido firmado' :
+                status.verde === 'en-mano' ? 'pedido en mano' :
+                status.verde === 'autorizado' ? 'pedido autorizado' :
+                'pedido (apagado)'
+              }
+            </span>
         </div>
         
          <div className="w-full flex items-center gap-3 p-2 rounded-md bg-slate-700 hover:bg-slate-600 cursor-pointer" onClick={handleCycleAzul}>
