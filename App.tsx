@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
@@ -1337,12 +1338,19 @@ const getMonday = (d: Date): Date => {
     return monday;
 };
 
+// Helper function to get today's date normalized to midnight to prevent timezone issues.
+const getTodayAtMidnight = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+};
+
 const MAX_HISTORY_SIZE = 15;
 
 export default function App() {
   // State
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [currentDate, setCurrentDate] = useState(getTodayAtMidnight);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(getTodayAtMidnight);
   const [mainDriveUrl, setMainDriveUrl] = useState<string>(() => window.localStorage.getItem('consultorio-mainDriveUrl') || '');
   
   // Undo/Redo State Management
@@ -1692,7 +1700,7 @@ export default function App() {
 
   // Handlers
   const handleGoToToday = useCallback(() => {
-    const today = new Date();
+    const today = getTodayAtMidnight();
     setCurrentDate(today);
     setSelectedDate(today);
   }, []);
