@@ -129,6 +129,8 @@ const Calendar: React.FC<CalendarProps> = ({
 
           // New condition for the special overlap case
           const isSpecialTripleOverlap = isToday && isHighlighted && isRecurringHighlighted;
+          // New condition for the user's request: selected day is also a highlighted day
+          const isSelectedAndHighlighted = isSelected && isHighlighted;
 
           let cellClasses = 'relative p-2 rounded-full transition-colors duration-200';
           
@@ -176,6 +178,13 @@ const Calendar: React.FC<CalendarProps> = ({
               className={cellClasses}
             >
               {date.getDate()}
+              {/* Add a dot if the selected day also has an appointment for the highlighted patient */}
+              {isSelectedAndHighlighted && (
+                <span 
+                  className="absolute bottom-1 right-1 w-2.5 h-2.5 bg-indigo-500 rounded-full ring-2 ring-slate-800"
+                  title="el paciente resaltado tiene un turno este día"
+                ></span>
+              )}
               {/* Render a more visible bar for the special case */}
               {isSpecialTripleOverlap && (
                 <span className="absolute bottom-1 left-2 right-2 h-1 bg-green-400 rounded-full"></span>
