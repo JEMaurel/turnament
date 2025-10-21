@@ -149,6 +149,20 @@ const AppointmentRow: React.FC<{
   const [dniCopied, setDniCopied] = useState(false);
   const [insuranceIdCopied, setInsuranceIdCopied] = useState(false);
 
+  const treatmentIndicator = useMemo(() => {
+    if (!appointment.treatment) return null;
+    const lowerTreatment = appointment.treatment.toLowerCase();
+    const kineKeywords = ['kinesiologia', 'kine', 'kinesio', 'kinesiolog', 'kin', 'kinesiol'];
+    if (kineKeywords.some(keyword => lowerTreatment.includes(keyword))) {
+      return { char: 'K' as const, title: 'kinesiología' };
+    }
+    if (lowerTreatment.includes('rpg')) {
+      return { char: 'G' as const, title: 'rpg' };
+    }
+    return null;
+  }, [appointment.treatment]);
+
+
   const handleCopyToClipboard = (text: string, type: 'dni' | 'insuranceId') => {
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
@@ -175,7 +189,18 @@ const AppointmentRow: React.FC<{
         className={`grid grid-cols-1 md:grid-cols-4 gap-2 items-center p-2 rounded-lg cursor-pointer transition-all duration-300 ${isHighlighted ? 'bg-slate-700 ring-2 ring-amber-400 shadow-lg shadow-amber-500/20' : 'bg-slate-800 hover:bg-slate-700'}`}
         onClick={() => { onSelectAppointment(appointment); onSetLastClickedPatientName(appointment.patientName); }}
       >
-        <div className="font-mono text-lg text-cyan-400">{appointment.time}</div>
+        <div className="flex items-baseline gap-6">
+          <span className="font-mono text-lg text-cyan-400">{appointment.time}</span>
+          {treatmentIndicator && (
+            <span 
+              className={`font-bold text-lg
+                ${treatmentIndicator.char === 'K' ? 'text-sky-500' : 'text-fuchsia-500'}`}
+              title={treatmentIndicator.title}
+            >
+              {treatmentIndicator.char}
+            </span>
+          )}
+        </div>
         
         <div className="flex items-center gap-3">
           <button

@@ -1563,7 +1563,8 @@ export default function App() {
         patientName: patient?.name || 'desconocido',
         observations: patient?.observations,
         dni: patient?.dni,
-        insuranceId: patient?.insuranceId
+        insuranceId: patient?.insuranceId,
+        treatment: patient?.treatment,
       });
     }
     return result.sort((a,b) => a.time.localeCompare(b.time));

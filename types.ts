@@ -33,4 +33,5 @@ export type AppointmentWithDetails = Appointment & {
   observations?: string; 
   dni?: string;
   insuranceId?: string;
+  treatment?: string;
 };
