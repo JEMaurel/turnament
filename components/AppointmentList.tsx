@@ -186,7 +186,7 @@ const AppointmentRow: React.FC<{
               appointment.dni
                 ? 'bg-slate-700 text-cyan-400 hover:bg-slate-600'
                 : 'bg-slate-800 text-slate-600 opacity-50'
-            } disabled:cursor-not-allowed`}
+            }`}
             aria-label="Copiar DNI"
           >
             {dniCopied ? (
@@ -208,7 +208,7 @@ const AppointmentRow: React.FC<{
               appointment.insuranceId
                 ? 'bg-slate-700 text-green-400 hover:bg-slate-600'
                 : 'bg-slate-800 text-slate-600 opacity-50'
-            } disabled:cursor-not-allowed`}
+            }`}
              aria-label="Copiar N° de Afiliado"
           >
             {insuranceIdCopied ? (
