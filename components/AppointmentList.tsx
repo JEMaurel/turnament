@@ -12,6 +12,7 @@ interface AppointmentListProps {
   onShowRecurringWeekAvailability: (time: string, date: Date) => void;
   onShowQuickLinks: (patientId: string) => void;
   onUpdateAppointmentStatus: (appointmentId: string, newStatus: PedidoStatus) => void;
+  onSetLastClickedPatientName: (name: string) => void;
   recurringAvailableSlots?: string[];
   highlightedPatientId?: string | null;
   multiBookedPatientIds?: Set<string>;
@@ -138,11 +139,12 @@ const AppointmentRow: React.FC<{
   onHighlightPatient: (patientId: string, time: string) => void;
   onShowQuickLinks: (patientId: string) => void;
   onUpdateAppointmentStatus: (appointmentId: string, newStatus: PedidoStatus) => void;
+  onSetLastClickedPatientName: (name: string) => void;
   isHighlighted: boolean;
   isMultiBooked: boolean;
   isStatusEditorOpen: boolean;
   onSetEditingStatusFor: (appointmentId: string | null) => void;
-}> = ({ appointment, onSelectAppointment, onDeleteAppointment, onHighlightPatient, onShowQuickLinks, onUpdateAppointmentStatus, isHighlighted, isMultiBooked, isStatusEditorOpen, onSetEditingStatusFor }) => {
+}> = ({ appointment, onSelectAppointment, onDeleteAppointment, onHighlightPatient, onShowQuickLinks, onUpdateAppointmentStatus, onSetLastClickedPatientName, isHighlighted, isMultiBooked, isStatusEditorOpen, onSetEditingStatusFor }) => {
   
   const handleToggleEditor = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -153,7 +155,7 @@ const AppointmentRow: React.FC<{
     <div className="relative">
       <div 
         className={`grid grid-cols-1 md:grid-cols-4 gap-2 items-center p-2 rounded-lg cursor-pointer transition-all duration-300 ${isHighlighted ? 'bg-slate-700 ring-2 ring-amber-400 shadow-lg shadow-amber-500/20' : 'bg-slate-800 hover:bg-slate-700'}`}
-        onClick={() => onSelectAppointment(appointment)}
+        onClick={() => { onSelectAppointment(appointment); onSetLastClickedPatientName(appointment.patientName); }}
       >
         <div className="font-mono text-lg text-cyan-400">{appointment.time}</div>
         <div className={`font-semibold truncate text-xl ${isMultiBooked ? 'text-red-400' : 'text-amber-300'}`}>{appointment.patientName}</div>
@@ -164,6 +166,7 @@ const AppointmentRow: React.FC<{
                   onClick={(e) => {
                       e.stopPropagation();
                       onSelectAppointment(appointment);
+                      onSetLastClickedPatientName(appointment.patientName);
                   }}
                   className="p-1 rounded-full hover:bg-slate-600 transition-colors"
                   aria-label={`Ver observación activa para ${appointment.patientName}`}
@@ -176,6 +179,7 @@ const AppointmentRow: React.FC<{
               onClick={(e) => {
                   e.stopPropagation();
                   onHighlightPatient(appointment.patientId, appointment.time);
+                  onSetLastClickedPatientName(appointment.patientName);
               }}
               className="p-1 rounded-full hover:bg-slate-600 transition-colors"
               aria-label={`Resaltar turnos de ${appointment.patientName} y ver disponibilidad`}
@@ -198,7 +202,7 @@ const AppointmentRow: React.FC<{
               </svg>
           </button>
            <button
-            onClick={(e) => { e.stopPropagation(); onShowQuickLinks(appointment.patientId); }}
+            onClick={(e) => { e.stopPropagation(); onShowQuickLinks(appointment.patientId); onSetLastClickedPatientName(appointment.patientName); }}
             className="p-2 rounded-full hover:bg-slate-600 transition-colors"
             aria-label={`ver accesos directos de ${appointment.patientName}`}
             title="ver accesos directos"
@@ -208,7 +212,7 @@ const AppointmentRow: React.FC<{
             </svg>
           </button>
            <button 
-            onClick={(e) => { e.stopPropagation(); onSelectAppointment(appointment); }} 
+            onClick={(e) => { e.stopPropagation(); onSelectAppointment(appointment); onSetLastClickedPatientName(appointment.patientName); }} 
             className="p-2 rounded-full hover:bg-slate-600 transition-colors"
             aria-label="Editar Turno"
           >
@@ -271,7 +275,7 @@ const EmptySlotRow: React.FC<{
 
 type ScheduledItem = { type: 'filled'; data: AppointmentWithDetails } | { type: 'empty'; time: string };
 
-const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient, onShowRecurringWeekAvailability, onShowQuickLinks, onUpdateAppointmentStatus, recurringAvailableSlots = [], highlightedPatientId, multiBookedPatientIds = new Set(), editingStatusFor, onSetEditingStatusFor }) => {
+const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient, onShowRecurringWeekAvailability, onShowQuickLinks, onUpdateAppointmentStatus, onSetLastClickedPatientName, recurringAvailableSlots = [], highlightedPatientId, multiBookedPatientIds = new Set(), editingStatusFor, onSetEditingStatusFor }) => {
 
   // FIX: Using a `for...of` loop to build the schedule. This resolves a subtle
   // TypeScript inference issue where the previous `map/filter` approach caused `item.data`
@@ -339,6 +343,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
                   onHighlightPatient={onHighlightPatient}
                   onShowQuickLinks={onShowQuickLinks}
                   onUpdateAppointmentStatus={onUpdateAppointmentStatus}
+                  onSetLastClickedPatientName={onSetLastClickedPatientName}
                   isHighlighted={!!highlightedPatientId && item.data.patientId === highlightedPatientId}
                   isMultiBooked={multiBookedPatientIds.has(item.data.patientId)}
                   isStatusEditorOpen={editingStatusFor === item.data.id}

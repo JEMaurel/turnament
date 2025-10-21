@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
@@ -600,7 +599,7 @@ const PatientRegistryModal: React.FC<{
                 <>
                     <div className="max-h-[60vh] overflow-y-auto pr-2">
                         <button onClick={() => onSetSelectedPatient(null)} className="flex items-center gap-2 mb-4 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
                             <span>volver a la lista</span>
                         </button>
                         <div className="space-y-4">
@@ -1078,7 +1077,7 @@ const QuickLinksModal: React.FC<{
                             aria-expanded={isEditingMainUrl}
                         >
                             <span>url principal</span>
-                             <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform ${isEditingMainUrl ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                             <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform ${isEditingMainUrl ? 'rotate-180' : ''}`} viewBox="http://www.w3.org/2000/svg" fill="currentColor">
                                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                             </svg>
                         </button>
@@ -1100,7 +1099,7 @@ const QuickLinksModal: React.FC<{
                             aria-expanded={isEditingPatientUrl}
                         >
                             <span>url propio</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform ${isEditingPatientUrl ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform ${isEditingPatientUrl ? 'rotate-180' : ''}`} viewBox="http://www.w3.org/2000/svg" fill="currentColor">
                                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                             </svg>
                         </button>
@@ -1281,6 +1280,52 @@ const PendingTasksModal: React.FC<{
   );
 };
 
+const SpecialButtonConfigModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  currentUrl: string;
+  onSave: (newUrl: string) => void;
+}> = ({ isOpen, onClose, currentUrl, onSave }) => {
+  const [url, setUrl] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setUrl(currentUrl);
+    }
+  }, [isOpen, currentUrl]);
+
+  const handleSave = () => {
+    onSave(url);
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="configurar botón de acción">
+      <div className="space-y-4">
+        <label htmlFor="special-url" className="block text-sm font-medium text-slate-300">
+          URL del botón
+        </label>
+        <p className="text-sm text-slate-400">
+          Al presionar este botón, se copiará el nombre del último paciente seleccionado al portapapeles y se abrirá la URL configurada en una nueva pestaña.
+        </p>
+        <input
+          id="special-url"
+          type="text"
+          value={url}
+          onChange={e => setUrl(e.target.value)}
+          placeholder="pegue la url aquí..."
+          className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"
+          autoFocus
+        />
+      </div>
+      <div className="flex justify-end pt-4 mt-4 border-t border-slate-700">
+        <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors mr-2">cancelar</button>
+        <button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">guardar</button>
+      </div>
+    </Modal>
+  );
+};
+
 
 // Helper function to get the Monday of a given date
 const getMonday = (d: Date): Date => {
@@ -1421,6 +1466,16 @@ export default function App() {
   // Patient Search State
   const [patientSearchTerm, setPatientSearchTerm] = useState('');
   const patientSearchRef = useRef<HTMLDivElement>(null);
+
+  // Special Button State
+  const [specialButtonUrl, setSpecialButtonUrl] = useState<string>(() => window.localStorage.getItem('consultorio-specialButtonUrl') || '');
+  const [lastClickedPatientName, setLastClickedPatientName] = useState<string>('');
+  const [isSpecialButtonConfigModalOpen, setSpecialButtonConfigModalOpen] = useState(false);
+
+  useEffect(() => {
+    window.localStorage.setItem('consultorio-specialButtonUrl', specialButtonUrl);
+  }, [specialButtonUrl]);
+
 
   // Storage Usage Calculation
   const storageUsage = useMemo(() => {
@@ -2522,6 +2577,32 @@ export default function App() {
     setSelectedDate(new Date(date));
   }, []);
 
+  const handleSpecialButtonClick = () => {
+    if (!specialButtonUrl) {
+      alert('primero debe configurar una url para este botón.');
+      setSpecialButtonConfigModalOpen(true);
+      return;
+    }
+
+    const patientName = lastClickedPatientName;
+    let finalUrl = specialButtonUrl.trim();
+
+    if (patientName) {
+      navigator.clipboard.writeText(patientName).catch(err => {
+        console.error('failed to copy patient name: ', err);
+      });
+    }
+
+    if (finalUrl && (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://'))) {
+        finalUrl = 'https://' + finalUrl;
+    }
+
+    window.open(finalUrl, '_blank', 'noopener,noreferrer');
+  };
+  
+  const handleSetLastClickedPatientName = useCallback((name: string) => {
+    setLastClickedPatientName(name);
+  }, []);
 
   const existingPatientForModal = useMemo((): Patient | null => {
     if (!editingAppointment) {
@@ -2591,12 +2672,32 @@ export default function App() {
                     <span className="hidden sm:inline">imp. turnos</span>
                 </button>
             </div>
+            <div className="flex items-center gap-1">
+                <button 
+                    onClick={handleSpecialButtonClick} 
+                    title="copiar último paciente y abrir enlace" 
+                    className="p-2 rounded-lg bg-green-600 hover:bg-green-500 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
+                        <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
+                    </svg>
+                </button>
+                <button 
+                    onClick={() => setSpecialButtonConfigModalOpen(true)} 
+                    title="configurar enlace" 
+                    className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
+                        <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01-.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                    </svg>
+                </button>
+            </div>
             <button onClick={() => setPatientRegistryOpen(true)} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0115 11h1c.414 0 .79.122 1.11.325a6.002 6.002 0 015.74 4.901A1 1 0 0121.82 18H15.07a3.001 3.001 0 01-2.14 2H10a1 1 0 01-1-1v-1a1 1 0 011-1h2.071a3.001 3.001 0 01-.141-1z" /></svg>
                 <span>pacientes</span>
             </button>
             <button onClick={() => setGlobalLinksModalOpen(true)} title="ver enlaces rápidos" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" /></svg>
                 <span>enlaces</span>
             </button>
             <button 
@@ -2607,7 +2708,7 @@ export default function App() {
                     : 'bg-slate-700 hover:bg-slate-600'
                 }`}
             >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
                     <path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h2a2 2 0 002-2V4a2 2 0 00-2-2H9z" />
                     <path fillRule="evenodd" d="M4 2a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2H4zm10 2a1 1 0 00-1-1H7a1 1 0 00-1 1v1h8V4z" clipRule="evenodd" />
                 </svg>
@@ -2685,6 +2786,7 @@ export default function App() {
             onShowRecurringWeekAvailability={handleShowRecurringWeekAvailability}
             onShowQuickLinks={handleShowQuickLinks}
             onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
+            onSetLastClickedPatientName={handleSetLastClickedPatientName}
             recurringAvailableSlots={recurringSlotsView && selectedDate && recurringSlotsView.date.toISOString().split('T')[0] === selectedDate.toISOString().split('T')[0] ? recurringSlotsView.slots : []}
             highlightedPatientId={selectedPatientId}
             multiBookedPatientIds={multiBookedPatientIds}
@@ -2763,6 +2865,12 @@ export default function App() {
         onClose={() => setPendingTasksModalOpen(false)}
         tasks={pendingTasks}
         onTasksChange={setPendingTasks}
+      />
+      <SpecialButtonConfigModal
+        isOpen={isSpecialButtonConfigModalOpen}
+        onClose={() => setSpecialButtonConfigModalOpen(false)}
+        currentUrl={specialButtonUrl}
+        onSave={setSpecialButtonUrl}
       />
 
 
