@@ -225,27 +225,39 @@ const AppointmentRow: React.FC<{
             )}
           </button>
           
-          <button
-            onClick={(e) => { e.stopPropagation(); handleCopyToClipboard(appointment.insuranceId || '', 'insuranceId'); }}
-            disabled={!appointment.insuranceId}
-            title={appointment.insuranceId ? `Copiar N° Afiliado: ${appointment.insuranceId}` : 'Paciente sin N° de Afiliado'}
-            className={`p-1.5 rounded-full transition-colors ${
-              appointment.insuranceId
-                ? 'bg-slate-700 text-green-400 hover:bg-slate-600'
-                : 'bg-slate-800 text-slate-600 opacity-50'
-            }`}
-             aria-label="Copiar N° de Afiliado"
-          >
-            {insuranceIdCopied ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5.09.052.052 0 002 5.142V11a1 1 0 001 1h16a1 1 0 001-1V5.142a.052.052 0 00-.166-.052A11.954 11.954 0 0110 1.944zM10 18c-3.314 0-6-2.686-6-6h12c0 3.314-2.686 6-6 6z" clipRule="evenodd" />
-              </svg>
+          <div className="relative">
+            <button
+              onClick={(e) => { e.stopPropagation(); handleCopyToClipboard(appointment.insuranceId || '', 'insuranceId'); }}
+              disabled={!appointment.insuranceId}
+              title={
+                appointment.insuranceIdIsPriority 
+                  ? `prioritario - copiar n° afiliado: ${appointment.insuranceId}` 
+                  : (appointment.insuranceId ? `copiar n° afiliado: ${appointment.insuranceId}` : 'paciente sin n° de afiliado')
+              }
+              className={`p-1.5 rounded-full transition-colors ${
+                appointment.insuranceId
+                  ? 'bg-slate-700 text-green-400 hover:bg-slate-600'
+                  : 'bg-slate-800 text-slate-600 opacity-50'
+              }`}
+               aria-label="copiar n° de afiliado"
+            >
+              {insuranceIdCopied ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5.09.052.052 0 002 5.142V11a1 1 0 001 1h16a1 1 0 001-1V5.142a.052.052 0 00-.166-.052A11.954 11.954 0 0110 1.944zM10 18c-3.314 0-6-2.686-6-6h12c0 3.314-2.686 6-6 6z" clipRule="evenodd" />
+                </svg>
+              )}
+            </button>
+            {appointment.insuranceIdIsPriority && appointment.insuranceId && (
+              <span 
+                className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-amber-400 ring-2 ring-slate-800"
+                title="n° de afiliado es prioritario" 
+              />
             )}
-          </button>
+          </div>
 
           <div className={`font-semibold truncate text-xl ml-12 ${isMultiBooked ? 'text-red-400' : 'text-amber-300'}`}>{appointment.patientName}</div>
         </div>

@@ -9,6 +9,7 @@ export interface Patient {
   diagnosis?: string;
   observations?: string;
   driveUrl?: string;
+  insuranceIdIsPriority?: boolean;
 }
 
 export interface PedidoStatus {
@@ -34,4 +35,5 @@ export type AppointmentWithDetails = Appointment & {
   dni?: string;
   insuranceId?: string;
   treatment?: string;
+  insuranceIdIsPriority?: boolean;
 };
