@@ -489,11 +489,11 @@ const AppointmentModal: React.FC<{
                                 title="copiar dni"
                             >
                                 {isDniCopied ? (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                     </svg>
                                 ) : (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
                                         <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
                                         <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
                                     </svg>
@@ -518,11 +518,11 @@ const AppointmentModal: React.FC<{
                                 title="copiar n° de afiliado"
                             >
                                 {isInsuranceIdCopied ? (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                     </svg>
                                 ) : (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
                                         <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
                                         <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
                                     </svg>
@@ -1054,7 +1054,7 @@ const QuickLinksModal: React.FC<{
             className={`flex items-center justify-center gap-3 w-full text-center font-bold py-3 px-4 rounded-lg transition-colors ${url ? className : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
             onClick={(e) => !url && e.preventDefault()}
         >
-            <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${iconClassName}`} viewBox="0 0 24 24" fill="currentColor"><path d="M22.484 13.911l-8.541 1.325a.833.833 0 01-.968-.783l-1.325-8.541a.833.833 0 01.783-.968l8.541-1.325a.833.833 0 01.968.783l1.325 8.541a.833.833 0 01-.783.968zM9.41 18.067L1.5 16.516a.833.833 0 01-.6-1.025l4.316-7.475a.833.833 0 011.025-.6l7.91 1.551a.833.833 0 01.6 1.025l-4.316 7.475a.833.833 0 01-1.025.6zM9.95 22.5a.833.833 0 01-.833-.742l-1.3-9.458a.833.833 0 01.742-.917l9.458-1.3a.833.833 0 01.916.742l1.3 9.458a.833.833 0 01-.741.917l-9.458 1.3a.83.83 0 01-.084 0z"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${iconClassName}`} viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path d="M22.484 13.911l-8.541 1.325a.833.833 0 01-.968-.783l-1.325-8.541a.833.833 0 01.783-.968l8.541-1.325a.833.833 0 01.968.783l1.325 8.541a.833.833 0 01-.783.968zM9.41 18.067L1.5 16.516a.833.833 0 01-.6-1.025l4.316-7.475a.833.833 0 011.025-.6l7.91 1.551a.833.833 0 01.6 1.025l-4.316 7.475a.833.833 0 01-1.025.6zM9.95 22.5a.833.833 0 01-.833-.742l-1.3-9.458a.833.833 0 01.742-.917l9.458-1.3a.833.833 0 01.916.742l1.3 9.458a.833.833 0 01-.741.917l-9.458 1.3a.83.83 0 01-.084 0z"/></svg>
             <span>{label}</span>
         </a>
     );
@@ -2679,7 +2679,7 @@ export default function App() {
                     className="p-2 rounded-lg bg-green-600 hover:bg-green-500 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
-                        <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
+                        <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l-1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
                     </svg>
                 </button>
                 <button 
@@ -2696,8 +2696,8 @@ export default function App() {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0115 11h1c.414 0 .79.122 1.11.325a6.002 6.002 0 015.74 4.901A1 1 0 0121.82 18H15.07a3.001 3.001 0 01-2.14 2H10a1 1 0 01-1-1v-1a1 1 0 011-1h2.071a3.001 3.001 0 01-.141-1z" /></svg>
                 <span>pacientes</span>
             </button>
-            <button onClick={() => setGlobalLinksModalOpen(true)} title="ver enlaces rápidos" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" /></svg>
+            <button onClick={() => setGlobalLinksModalOpen(true)} title="ver enlaces rápidos" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l-1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" /></svg>
                 <span>enlaces</span>
             </button>
             <button 
