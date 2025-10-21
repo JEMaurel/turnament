@@ -146,6 +146,24 @@ const AppointmentRow: React.FC<{
   onSetEditingStatusFor: (appointmentId: string | null) => void;
 }> = ({ appointment, onSelectAppointment, onDeleteAppointment, onHighlightPatient, onShowQuickLinks, onUpdateAppointmentStatus, onSetLastClickedPatientName, isHighlighted, isMultiBooked, isStatusEditorOpen, onSetEditingStatusFor }) => {
   
+  const [dniCopied, setDniCopied] = useState(false);
+  const [insuranceIdCopied, setInsuranceIdCopied] = useState(false);
+
+  const handleCopyToClipboard = (text: string, type: 'dni' | 'insuranceId') => {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      if (type === 'dni') {
+        setDniCopied(true);
+        setTimeout(() => setDniCopied(false), 2000);
+      } else {
+        setInsuranceIdCopied(true);
+        setTimeout(() => setInsuranceIdCopied(false), 2000);
+      }
+    }).catch(err => {
+      console.error('Failed to copy text: ', err);
+    });
+  };
+
   const handleToggleEditor = (e: React.MouseEvent) => {
     e.stopPropagation();
     onSetEditingStatusFor(isStatusEditorOpen ? null : appointment.id);
@@ -158,7 +176,55 @@ const AppointmentRow: React.FC<{
         onClick={() => { onSelectAppointment(appointment); onSetLastClickedPatientName(appointment.patientName); }}
       >
         <div className="font-mono text-lg text-cyan-400">{appointment.time}</div>
-        <div className={`font-semibold truncate text-xl ${isMultiBooked ? 'text-red-400' : 'text-amber-300'}`}>{appointment.patientName}</div>
+        
+        <div className="flex items-center gap-3">
+          <button
+            onClick={(e) => { e.stopPropagation(); handleCopyToClipboard(appointment.dni || '', 'dni'); }}
+            disabled={!appointment.dni}
+            title={appointment.dni ? `Copiar DNI: ${appointment.dni}` : 'Paciente sin DNI'}
+            className={`p-1.5 rounded-full transition-colors ${
+              appointment.dni
+                ? 'bg-slate-700 text-cyan-400 hover:bg-slate-600'
+                : 'bg-slate-800 text-slate-600 opacity-50'
+            } disabled:cursor-not-allowed`}
+            aria-label="Copiar DNI"
+          >
+            {dniCopied ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 2a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 4a1 1 0 100 2h3a1 1 0 100-2H6z" />
+              </svg>
+            )}
+          </button>
+          
+          <button
+            onClick={(e) => { e.stopPropagation(); handleCopyToClipboard(appointment.insuranceId || '', 'insuranceId'); }}
+            disabled={!appointment.insuranceId}
+            title={appointment.insuranceId ? `Copiar N° Afiliado: ${appointment.insuranceId}` : 'Paciente sin N° de Afiliado'}
+            className={`p-1.5 rounded-full transition-colors ${
+              appointment.insuranceId
+                ? 'bg-slate-700 text-green-400 hover:bg-slate-600'
+                : 'bg-slate-800 text-slate-600 opacity-50'
+            } disabled:cursor-not-allowed`}
+             aria-label="Copiar N° de Afiliado"
+          >
+            {insuranceIdCopied ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5.09.052.052 0 002 5.142V11a1 1 0 001 1h16a1 1 0 001-1V5.142a.052.052 0 00-.166-.052A11.954 11.954 0 0110 1.944zM10 18c-3.314 0-6-2.686-6-6h12c0 3.314-2.686 6-6 6z" clipRule="evenodd" />
+              </svg>
+            )}
+          </button>
+
+          <div className={`font-semibold truncate text-xl ${isMultiBooked ? 'text-red-400' : 'text-amber-300'}`}>{appointment.patientName}</div>
+        </div>
+
         <div className="flex items-center gap-3 text-slate-400">
           <span className="text-base font-mono">{appointment.session}</span>
           {appointment.observations && (

@@ -28,4 +28,9 @@ export interface Appointment {
 }
 
 // FIX: Centralized AppointmentWithDetails type to resolve type inference issues across components.
-export type AppointmentWithDetails = Appointment & { patientName: string; observations?: string; };
+export type AppointmentWithDetails = Appointment & { 
+  patientName: string; 
+  observations?: string; 
+  dni?: string;
+  insuranceId?: string;
+};

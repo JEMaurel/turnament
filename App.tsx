@@ -1553,7 +1553,9 @@ export default function App() {
       result.push({
         ...app,
         patientName: patient?.name || 'desconocido',
-        observations: patient?.observations
+        observations: patient?.observations,
+        dni: patient?.dni,
+        insuranceId: patient?.insuranceId
       });
     }
     return result.sort((a,b) => a.time.localeCompare(b.time));
