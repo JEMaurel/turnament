@@ -804,8 +804,9 @@ const PatientScheduleViewer: React.FC<{
   schedule: MonthlySchedule[];
   onClose: () => void;
   onAppointmentClick: (date: Date) => void;
+  sourceHighlightAppointment: { date: string; time: string; } | null;
   currentDate: Date;
-}> = ({ patientName, schedule, onClose, onAppointmentClick, currentDate }) => {
+}> = ({ patientName, schedule, onClose, onAppointmentClick, sourceHighlightAppointment, currentDate }) => {
   const WEEK_DAYS = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const monthRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -872,15 +873,23 @@ const PatientScheduleViewer: React.FC<{
                                                 {day.date.getDate()}
                                             </span>
                                             <div className="space-y-1 text-center">
-                                                {day.times.map(time => (
-                                                    <button
-                                                        key={time}
-                                                        onClick={() => day && onAppointmentClick(day.date)}
-                                                        className="w-full bg-indigo-500 hover:bg-indigo-400 text-white text-base font-bold rounded px-2 py-1 whitespace-nowrap transition-colors text-center"
-                                                    >
-                                                        {time}
-                                                    </button>
-                                                ))}
+                                                {day.times.map(time => {
+                                                    const isSourceAppointment = sourceHighlightAppointment &&
+                                                        day.date.toISOString().split('T')[0] === sourceHighlightAppointment.date &&
+                                                        time === sourceHighlightAppointment.time;
+                                                    
+                                                    return (
+                                                      <button
+                                                          key={time}
+                                                          onClick={() => day && onAppointmentClick(day.date)}
+                                                          className={`w-full bg-indigo-500 hover:bg-indigo-400 text-white text-base font-bold rounded px-2 py-1 whitespace-nowrap transition-colors text-center ${
+                                                              isSourceAppointment ? 'ring-2 ring-offset-2 ring-offset-slate-800 ring-amber-400' : ''
+                                                          }`}
+                                                      >
+                                                          {time}
+                                                      </button>
+                                                    );
+                                                })}
                                             </div>
                                         </>
                                     )}
@@ -1482,6 +1491,7 @@ export default function App() {
   // New state for recurring slots viewer
   const [recurringSlotsView, setRecurringSlotsView] = useState<{ date: Date; slots: string[] } | null>(null);
   const [recurringHighlightDays, setRecurringHighlightDays] = useState<string[]>([]);
+  const [sourceHighlightAppointment, setSourceHighlightAppointment] = useState<{ date: string; time: string; } | null>(null);
   
   // Pending tasks state
   const [pendingTasks, setPendingTasks] = useState<string>(
@@ -1795,12 +1805,14 @@ export default function App() {
     if (!selectedPatientId) {
        // Only clear highlight if we are not in highlight mode
        setSelectedPatientId(null);
+       setSourceHighlightAppointment(null);
     }
     // If we are in highlight mode, clicking a non-highlighted day will switch context
     // and this condition will be false, so the highlight remains until explicitly cleared.
     // Clicking a highlighted day is handled by the block above.
     if(selectedPatientId && !highlightedPatientDays.includes(dateString)) {
        setSelectedPatientId(null);
+       setSourceHighlightAppointment(null);
     }
 
 
@@ -1836,6 +1848,7 @@ export default function App() {
     }
     setRecurringHighlightDays(availableDays);
     setSelectedPatientId(null);
+    setSourceHighlightAppointment(null);
     setRecurringSlotsView(null);
     setEditingStatusFor(null);
   }, [isSlotRecurring]);
@@ -1854,6 +1867,7 @@ export default function App() {
         setSelectedPatientId(null);
         setRecurringHighlightDays([]);
         setEditingStatusFor(null);
+        setSourceHighlightAppointment(null);
         return;
     }
 
@@ -1862,6 +1876,7 @@ export default function App() {
     
     // Also, calculate and set recurring availability for the clicked time (green globes)
     if (selectedDate) {
+        setSourceHighlightAppointment({ date: selectedDate.toISOString().split('T')[0], time });
         const monday = getMonday(selectedDate);
         const availableDays: string[] = [];
         for (let i = 0; i < 5; i++) {
@@ -2791,8 +2806,12 @@ export default function App() {
                   <PatientScheduleViewer 
                     patientName={highlightedPatientName}
                     schedule={highlightedPatientSchedule}
-                    onClose={() => setSelectedPatientId(null)}
+                    onClose={() => {
+                        setSelectedPatientId(null);
+                        setSourceHighlightAppointment(null);
+                    }}
                     onAppointmentClick={handleAppointmentClickFromViewer}
+                    sourceHighlightAppointment={sourceHighlightAppointment}
                     currentDate={currentDate}
                   />
               ) : recurringSlotsView ? (
