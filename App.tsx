@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
@@ -856,7 +855,7 @@ const PatientScheduleViewer: React.FC<{
                                 <div key={dayIndex} className={`p-1 rounded-md transition-colors ${isWeekend ? 'bg-slate-900/50' : 'bg-slate-700/50'}`}>
                                     {day && day.times.length > 0 && (
                                         <>
-                                            <span className="text-xs font-bold text-slate-500 flex justify-center items-center h-4 w-4 rounded-full bg-slate-800/50 mx-auto mb-1">
+                                            <span className="text-sm font-bold text-indigo-300 flex justify-center items-center h-5 w-5 rounded-full bg-slate-800/50 mx-auto mb-1">
                                                 {day.date.getDate()}
                                             </span>
                                             <div className="space-y-1 text-center">
@@ -1448,7 +1447,7 @@ export default function App() {
     try {
         window.localStorage.setItem('consultorio-globalLinks', JSON.stringify(globalLinks));
     } catch (error) {
-        console.error("Error saving global links to localStorage:", error);
+        console.error("Error saving global links from localStorage:", error);
     }
   }, [globalLinks]);
 
