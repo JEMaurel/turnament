@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
@@ -769,7 +770,7 @@ const RecurringSlotsViewer: React.FC<{
   const dayName = date.toLocaleString('es-ES', { weekday: 'long' });
 
   return (
-    <div className="p-4 bg-slate-800 rounded-lg shadow-lg relative h-full flex flex-col">
+    <div className="p-4 bg-slate-800 rounded-lg shadow-lg relative flex flex-col">
       <button 
         onClick={onClose} 
         className="absolute top-2 right-2 text-slate-400 hover:text-white z-10 p-1 text-2xl"
@@ -780,7 +781,7 @@ const RecurringSlotsViewer: React.FC<{
       <h3 className="text-xl font-bold text-center mb-4">
         disponibles los <span className="text-cyan-400">{dayName}</span>
       </h3>
-      <div className="flex-grow overflow-y-auto no-scrollbar pr-2">
+      <div className="no-scrollbar pr-2">
         {slots.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
             {slots.map(slot => (
@@ -830,7 +831,7 @@ const PatientScheduleViewer: React.FC<{
 
 
   return (
-    <div className="p-4 bg-slate-800 rounded-lg shadow-lg relative h-full flex flex-col">
+    <div className="p-4 bg-slate-800 rounded-lg shadow-lg relative flex flex-col">
        <button 
         onClick={onClose} 
         className="absolute top-2 right-2 text-slate-400 hover:text-white z-20 p-1 text-2xl"
@@ -846,7 +847,7 @@ const PatientScheduleViewer: React.FC<{
         {WEEK_DAYS.map(day => <div key={day}>{day}</div>)}
       </div>
 
-      <div ref={scrollContainerRef} className="flex-grow overflow-y-auto no-scrollbar pr-2 space-y-1">
+      <div ref={scrollContainerRef} className="no-scrollbar pr-2 space-y-1">
         {schedule.length > 0 ? (
             schedule.map((monthly) => {
               const monthKey = `${monthly.year}-${monthly.month}`;
@@ -2786,7 +2787,7 @@ export default function App() {
               onMonthChange={setCurrentDate}
             />
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-700 flex-1 min-h-[28rem] flex flex-col gap-4">
+          <div className="mt-4 pt-4 border-t border-slate-700 min-h-[28rem] flex flex-col gap-4">
             <div className="flex-shrink-0">
               <Calendar
                 currentDate={nextMonthDate}
@@ -2801,7 +2802,7 @@ export default function App() {
                 showGoToTodayButton={true}
               />
             </div>
-             <div className="flex-grow min-h-0">
+             <div className="flex-1 min-h-0">
               {selectedPatientId ? (
                   <PatientScheduleViewer 
                     patientName={highlightedPatientName}
