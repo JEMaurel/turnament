@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
 import Calendar from './components/Calendar';
 import AppointmentList from './components/AppointmentList';
@@ -766,8 +764,15 @@ const RecurringSlotsViewer: React.FC<{
   date: Date;
   slots: string[];
   onClose: () => void;
-}> = ({ date, slots, onClose }) => {
+  scrollContainerRef: React.RefObject<HTMLDivElement>;
+}> = ({ date, slots, onClose, scrollContainerRef }) => {
   const dayName = date.toLocaleString('es-ES', { weekday: 'long' });
+
+  useLayoutEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [date, slots, scrollContainerRef]);
 
   return (
     <div className="p-4 bg-slate-800 rounded-lg shadow-lg relative flex flex-col">
@@ -806,28 +811,15 @@ const PatientScheduleViewer: React.FC<{
   onClose: () => void;
   onAppointmentClick: (date: Date) => void;
   sourceHighlightAppointment: { date: string; time: string; } | null;
-  currentDate: Date;
-}> = ({ patientName, schedule, onClose, onAppointmentClick, sourceHighlightAppointment, currentDate }) => {
+  scrollContainerRef: React.RefObject<HTMLDivElement>;
+}> = ({ patientName, schedule, onClose, onAppointmentClick, sourceHighlightAppointment, scrollContainerRef }) => {
   const WEEK_DAYS = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const monthRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-
+  
   useLayoutEffect(() => {
-    if (schedule.length > 0 && scrollContainerRef.current) {
-      const targetYear = currentDate.getFullYear();
-      const targetMonthName = currentDate.toLocaleString('es-ES', { month: 'long' });
-      const targetKey = `${targetYear}-${targetMonthName}`;
-      
-      const targetElement = monthRefs.current.get(targetKey);
-
-      if (targetElement) {
-        targetElement.scrollIntoView({
-          behavior: 'auto',
-          block: 'start',
-        });
-      }
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
     }
-  }, [schedule, currentDate]);
+  }, [schedule, scrollContainerRef]);
 
 
   return (
@@ -847,18 +839,12 @@ const PatientScheduleViewer: React.FC<{
         {WEEK_DAYS.map(day => <div key={day}>{day}</div>)}
       </div>
 
-      <div ref={scrollContainerRef} className="no-scrollbar pr-2 space-y-1">
+      <div className="no-scrollbar pr-2 space-y-1">
         {schedule.length > 0 ? (
             schedule.map((monthly) => {
               const monthKey = `${monthly.year}-${monthly.month}`;
               return (
-                <div 
-                  key={monthKey}
-                  ref={(el) => {
-                    if (el) monthRefs.current.set(monthKey, el);
-                    else monthRefs.current.delete(monthKey);
-                  }}
-                >
+                <div key={monthKey}>
                   <h4 className="text-lg font-bold text-center text-cyan-400 my-2 sticky top-0 bg-slate-800 py-1 z-10">
                     {monthly.month} {monthly.year}
                   </h4>
@@ -1472,6 +1458,7 @@ export default function App() {
   const [calendarWidth, setCalendarWidth] = useState(420);
   const [isResizing, setIsResizing] = useState(false);
   const mainContentRef = useRef<HTMLDivElement>(null);
+  const leftPanelRef = useRef<HTMLDivElement>(null);
 
   // Modal States
   const [isAppointmentModalOpen, setAppointmentModalOpen] = useState(false);
@@ -2776,7 +2763,7 @@ export default function App() {
       </header>
 
       <main ref={mainContentRef} className="flex-1 flex flex-row gap-0 min-h-0">
-        <div style={{ width: `${calendarWidth}px` }} className="flex-shrink-0 h-full flex flex-col overflow-y-auto no-scrollbar">
+        <div ref={leftPanelRef} style={{ width: `${calendarWidth}px` }} className="flex-shrink-0 h-full flex flex-col overflow-y-auto no-scrollbar">
           <div className="flex-shrink-0">
             <Calendar
               currentDate={currentDate}
@@ -2813,13 +2800,14 @@ export default function App() {
                     }}
                     onAppointmentClick={handleAppointmentClickFromViewer}
                     sourceHighlightAppointment={sourceHighlightAppointment}
-                    currentDate={currentDate}
+                    scrollContainerRef={leftPanelRef}
                   />
               ) : recurringSlotsView ? (
                   <RecurringSlotsViewer 
                     date={recurringSlotsView.date}
                     slots={recurringSlotsView.slots}
                     onClose={() => setRecurringSlotsView(null)}
+                    scrollContainerRef={leftPanelRef}
                   />
               ) : null}
             </div>
