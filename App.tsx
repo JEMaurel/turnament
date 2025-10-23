@@ -4,6 +4,7 @@ import AppointmentList from './components/AppointmentList';
 // FIX: Imported the centralized AppointmentWithDetails type to ensure type consistency.
 import type { Patient, Appointment, AppointmentWithDetails, PedidoStatus } from './types';
 import { getAiAssistance } from './services/geminiService';
+import DigitalClock from './components/DigitalClock';
 
 // New types for the Patient Schedule Viewer
 interface DaySchedule {
@@ -2657,7 +2658,10 @@ export default function App() {
   return (
     <div className="h-screen bg-slate-900 text-white p-4 sm:p-6 lg:p-8 flex flex-col overflow-hidden">
       <header className="flex flex-wrap justify-between items-center mb-6 gap-4 flex-shrink-0">
-        <h1 className="text-3xl font-bold text-cyan-400">consultorio virtual</h1>
+        <div className="flex items-baseline gap-6">
+          <h1 className="text-3xl font-bold text-cyan-400">consultorio virtual</h1>
+          <DigitalClock />
+        </div>
         <div className="flex items-center flex-wrap gap-3">
             <div className="flex items-center gap-1">
                 <button onClick={handleUndo} disabled={!canUndo} title="deshacer (ctrl+z)" className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors">
