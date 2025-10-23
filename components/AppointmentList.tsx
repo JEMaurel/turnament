@@ -21,33 +21,36 @@ interface AppointmentListProps {
 }
 
 const PedidoStatusIndicator: React.FC<{ status?: PedidoStatus }> = ({ status }) => {
-  if (!status) return null;
-
   let dotColorClass = '';
-  // Priority: Verde > Naranja > Rojo
-  if (status.verde === 'firmado') {
-    dotColorClass = 'bg-green-900'; // Verde oscuro/firmado
-  } else if (status.verde === 'en-mano') {
-    dotColorClass = 'bg-green-700'; // Verde militar
-  } else if (status.verde === 'autorizado') {
-    dotColorClass = 'bg-green-400'; // Verde loro
-  } else if (status.naranja) {
-    dotColorClass = 'bg-orange-500';
-  } else if (status.rojo) {
-    dotColorClass = 'bg-red-500';
+  if (status) {
+      // Priority: Verde > Naranja > Rojo
+      if (status.verde === 'firmado') {
+        dotColorClass = 'bg-green-900'; // Verde oscuro/firmado
+      } else if (status.verde === 'en-mano') {
+        dotColorClass = 'bg-green-700'; // Verde militar
+      } else if (status.verde === 'autorizado') {
+        dotColorClass = 'bg-green-400'; // Verde loro
+      } else if (status.naranja) {
+        dotColorClass = 'bg-orange-500';
+      } else if (status.rojo) {
+        dotColorClass = 'bg-red-500';
+      }
   }
 
-  const haloColorClass = status.azul === 'refuerzo' ? 'ring-cyan-400' :
-                         status.azul === 'refuerzo-en-tramite' ? 'ring-blue-500' :
-                         '';
+  // If there's no main color, we show a placeholder to keep layout consistent
+  if (!dotColorClass) {
+      return <div className="w-5 h-5" />;
+  }
   
-  if (!dotColorClass) return null; // Don't render if no primary status is set
+  const haloColorClass = status?.azul === 'refuerzo' ? 'ring-cyan-400' :
+                         status?.azul === 'refuerzo-en-tramite' ? 'ring-blue-500' :
+                         '';
 
   return (
-    <div className="relative w-4 h-4" title="estado del pedido">
+    <div className="relative w-5 h-5" title="estado del pedido">
       <div className={`w-full h-full rounded-full flex items-center justify-center ${dotColorClass} ${haloColorClass ? `ring-2 ring-offset-2 ring-offset-slate-800 ${haloColorClass}` : ''}`}>
-        {status.verde === 'firmado' && (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+        {status?.verde === 'firmado' && (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         )}
@@ -111,7 +114,7 @@ const PedidoStatusEditor: React.FC<{
 
   const StatusButton: React.FC<{ label: string; colorClass: string; isActive: boolean; onClick: () => void; }> = ({ label, colorClass, isActive, onClick }) => (
     <button onClick={onClick} className={`w-full flex items-center gap-3 p-2 rounded-md text-left transition-colors ${isActive ? 'bg-slate-600' : 'bg-slate-700 hover:bg-slate-600'}`}>
-      <div className={`w-4 h-4 rounded-full ${colorClass} ${isActive ? '' : 'opacity-40'}`}></div>
+      <div className={`w-5 h-5 rounded-full ${colorClass} ${isActive ? '' : 'opacity-40'}`}></div>
       <span>{label}</span>
     </button>
   );
@@ -127,14 +130,14 @@ const PedidoStatusEditor: React.FC<{
         <StatusButton label="pedido en trámite" colorClass="bg-orange-500" isActive={!!status.naranja} onClick={() => handleToggle('naranja')} />
         
         <div className="w-full flex items-center gap-3 p-2 rounded-md bg-slate-700 hover:bg-slate-600 cursor-pointer" onClick={handleCycleVerde}>
-            <div className={`w-4 h-4 rounded-full transition-colors flex items-center justify-center ${
+            <div className={`w-5 h-5 rounded-full transition-colors flex items-center justify-center ${
               status.verde === 'firmado' ? 'bg-green-900' :
               status.verde === 'en-mano' ? 'bg-green-700' :
               status.verde === 'autorizado' ? 'bg-green-400' :
               'bg-gray-500 opacity-40'
             }`}>
               {status.verde === 'firmado' && (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               )}
@@ -150,7 +153,7 @@ const PedidoStatusEditor: React.FC<{
         </div>
         
          <div className="w-full flex items-center gap-3 p-2 rounded-md bg-slate-700 hover:bg-slate-600 cursor-pointer" onClick={handleCycleAzul}>
-            <div className={`w-4 h-4 rounded-full transition-colors ${status.azul === 'refuerzo' ? 'bg-cyan-400' : status.azul === 'refuerzo-en-tramite' ? 'bg-blue-500' : 'bg-gray-500 opacity-40'}`}></div>
+            <div className={`w-5 h-5 rounded-full transition-colors ${status.azul === 'refuerzo' ? 'bg-cyan-400' : status.azul === 'refuerzo-en-tramite' ? 'bg-blue-500' : 'bg-gray-500 opacity-40'}`}></div>
             <span>{status.azul === 'refuerzo' ? 'pedido de refuerzo' : status.azul === 'refuerzo-en-tramite' ? 'refuerzo en trámite' : 'refuerzo (apagado)'}</span>
         </div>
       </div>
@@ -298,11 +301,11 @@ const AppointmentRow: React.FC<{
                       onSelectAppointment(appointment);
                       onSetLastClickedPatientName(appointment.patientName);
                   }}
-                  className="p-1 rounded-full hover:bg-slate-600 transition-colors"
+                  className="p-1.5 rounded-full hover:bg-slate-600 transition-colors"
                   aria-label={`Ver observación activa para ${appointment.patientName}`}
                   title="Observación activa. Click para ver o editar."
               >
-                  <div className="w-4 h-4 bg-amber-600 rounded-full"></div>
+                  <div className="w-5 h-5 bg-amber-600 rounded-full"></div>
               </button>
           )}
           <button
@@ -311,21 +314,21 @@ const AppointmentRow: React.FC<{
                   onHighlightPatient(appointment.patientId, appointment.time);
                   onSetLastClickedPatientName(appointment.patientName);
               }}
-              className="p-1 rounded-full hover:bg-slate-600 transition-colors"
+              className="p-1.5 rounded-full hover:bg-slate-600 transition-colors"
               aria-label={`Resaltar turnos de ${appointment.patientName} y ver disponibilidad`}
               title={`Resaltar turnos del paciente y ver disponibilidad semanal para este horario.`}
           >
-              <div className="w-4 h-4 bg-indigo-400 rounded-full"></div>
+              <div className="w-5 h-5 bg-indigo-400 rounded-full"></div>
           </button>
         </div>
         <div className="flex justify-end items-center gap-3">
-          <PedidoStatusIndicator status={appointment.pedidoStatus} />
           <button
             onClick={handleToggleEditor}
-            className="p-2 rounded-full hover:bg-slate-600 transition-colors"
+            className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-600 transition-colors"
             aria-label="gestionar estado del pedido"
             title="gestionar estado del pedido"
           >
+              <PedidoStatusIndicator status={appointment.pedidoStatus} />
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="http://www.w3.org/2000/svg" fill="currentColor">
                 <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                 <path fillRule="evenodd" d="M.458 10C3.732 4.943 9.522 3 10 3s6.268 1.943 9.542 7c-3.274 5.057-9.064 7-9.542 7S3.732 15.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
@@ -382,11 +385,11 @@ const EmptySlotRow: React.FC<{
                     e.stopPropagation();
                     onShowRecurringWeekAvailability(time);
                   }}
-                  className="p-1 rounded-full hover:bg-slate-600 transition-colors"
+                  className="p-1.5 rounded-full hover:bg-slate-600 transition-colors"
                   aria-label={`Mostrar disponibilidad semanal para las ${time}`}
                   title="Mostrar disponibilidad semanal para este horario."
               >
-                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                  <div className="w-5 h-5 bg-green-500 rounded-full"></div>
               </button>
           )}
         </div>
