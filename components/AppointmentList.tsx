@@ -341,13 +341,6 @@ const AppointmentRow: React.FC<{
               <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
             </svg>
           </button>
-           <button 
-            onClick={(e) => { e.stopPropagation(); onSelectAppointment(appointment); onSetLastClickedPatientName(appointment.patientName); }} 
-            className="p-2 rounded-full hover:bg-slate-600 transition-colors"
-            aria-label="Editar Turno"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2-2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
-          </button>
           <button 
             onClick={(e) => { e.stopPropagation(); onDeleteAppointment(appointment.id); }} 
             className="p-2 text-red-400 rounded-full hover:bg-red-900/50 transition-colors"
