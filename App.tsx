@@ -1404,6 +1404,9 @@ export default function App() {
     }
   });
 
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [activeAppointmentId, setActiveAppointmentId] = useState<string | null>(null);
+
 
   // Function to update state and record history
   const updateState = useCallback((newState: AppState) => {
@@ -1594,6 +1597,47 @@ export default function App() {
     }
     return result.sort((a,b) => a.time.localeCompare(b.time));
   }, [selectedDate, appointments, patients]);
+
+  // Effect for time-based highlighting
+  useEffect(() => {
+    const timerId = setInterval(() => {
+        setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timerId);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedDate) {
+        setActiveAppointmentId(null);
+        return;
+    }
+
+    const today = new Date();
+    const isToday = selectedDate.getFullYear() === today.getFullYear() &&
+                    selectedDate.getMonth() === today.getMonth() &&
+                    selectedDate.getDate() === today.getDate();
+
+    if (!isToday) {
+        setActiveAppointmentId(null);
+        return;
+    }
+
+    const currentTimeString = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`;
+
+    // Find the last appointment that has started
+    let currentAppointment: AppointmentWithDetails | null = null;
+    for (const app of appointmentsForSelectedDay) {
+        if (app.time <= currentTimeString) {
+            currentAppointment = app;
+        } else {
+            break; // Appointments are sorted, so we can stop
+        }
+    }
+
+    setActiveAppointmentId(currentAppointment ? currentAppointment.id : null);
+
+  }, [currentTime, selectedDate, appointmentsForSelectedDay]);
 
   const multiBookedPatientIds = useMemo(() => {
     if (!selectedDate) return new Set<string>();
@@ -2841,6 +2885,7 @@ export default function App() {
             multiBookedPatientIds={multiBookedPatientIds}
             editingStatusFor={editingStatusFor}
             onSetEditingStatusFor={setEditingStatusFor}
+            activeAppointmentId={activeAppointmentId}
           />
         </div>
       </main>

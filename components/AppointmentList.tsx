@@ -18,6 +18,7 @@ interface AppointmentListProps {
   multiBookedPatientIds?: Set<string>;
   editingStatusFor: string | null;
   onSetEditingStatusFor: (appointmentId: string | null) => void;
+  activeAppointmentId: string | null;
 }
 
 const PedidoStatusIndicator: React.FC<{ status?: PedidoStatus }> = ({ status }) => {
@@ -174,7 +175,8 @@ const AppointmentRow: React.FC<{
   isMultiBooked: boolean;
   isStatusEditorOpen: boolean;
   onSetEditingStatusFor: (appointmentId: string | null) => void;
-}> = ({ appointment, onSelectAppointment, onDeleteAppointment, onHighlightPatient, onShowQuickLinks, onUpdateAppointmentStatus, onSetLastClickedPatientName, isHighlighted, isMultiBooked, isStatusEditorOpen, onSetEditingStatusFor }) => {
+  isActive: boolean;
+}> = ({ appointment, onSelectAppointment, onDeleteAppointment, onHighlightPatient, onShowQuickLinks, onUpdateAppointmentStatus, onSetLastClickedPatientName, isHighlighted, isMultiBooked, isStatusEditorOpen, onSetEditingStatusFor, isActive }) => {
   
   const [dniCopied, setDniCopied] = useState(false);
   const [insuranceIdCopied, setInsuranceIdCopied] = useState(false);
@@ -216,7 +218,7 @@ const AppointmentRow: React.FC<{
   return (
     <div className="relative">
       <div 
-        className={`grid grid-cols-1 md:grid-cols-4 gap-2 items-center p-2 rounded-lg cursor-pointer transition-all duration-300 ${isHighlighted ? 'bg-slate-700 ring-2 ring-amber-400 shadow-lg shadow-amber-500/20' : 'bg-slate-800 hover:bg-slate-700'}`}
+        className={`grid grid-cols-1 md:grid-cols-4 gap-2 items-center p-2 rounded-lg cursor-pointer transition-all duration-300 ${isActive ? 'bg-teal-800 ring-2 ring-teal-500 shadow-lg shadow-teal-500/20' : isHighlighted ? 'bg-slate-700 ring-2 ring-amber-400 shadow-lg shadow-amber-500/20' : 'bg-slate-800 hover:bg-slate-700'}`}
         onClick={() => { onSelectAppointment(appointment); onSetLastClickedPatientName(appointment.patientName); }}
       >
         <div className="flex items-baseline gap-6">
@@ -401,7 +403,7 @@ const EmptySlotRow: React.FC<{
 
 type ScheduledItem = { type: 'filled'; data: AppointmentWithDetails } | { type: 'empty'; time: string };
 
-const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient, onShowRecurringWeekAvailability, onShowQuickLinks, onUpdateAppointmentStatus, onSetLastClickedPatientName, recurringAvailableSlots = [], highlightedPatientId, multiBookedPatientIds = new Set(), editingStatusFor, onSetEditingStatusFor }) => {
+const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appointments, onSelectAppointment, onDeleteAppointment, onAddNewAppointment, onHighlightPatient, onShowRecurringWeekAvailability, onShowQuickLinks, onUpdateAppointmentStatus, onSetLastClickedPatientName, recurringAvailableSlots = [], highlightedPatientId, multiBookedPatientIds = new Set(), editingStatusFor, onSetEditingStatusFor, activeAppointmentId }) => {
 
   // FIX: Using a `for...of` loop to build the schedule. This resolves a subtle
   // TypeScript inference issue where the previous `map/filter` approach caused `item.data`
@@ -474,6 +476,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ selectedDate, appoint
                   isMultiBooked={multiBookedPatientIds.has(item.data.patientId)}
                   isStatusEditorOpen={editingStatusFor === item.data.id}
                   onSetEditingStatusFor={onSetEditingStatusFor}
+                  isActive={item.data.id === activeAppointmentId}
                 />
               );
             } else {
