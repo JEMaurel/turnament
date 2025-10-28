@@ -294,7 +294,7 @@ const AppointmentRow: React.FC<{
           <div className={`font-semibold truncate text-xl ml-12 ${isMultiBooked ? 'text-red-400' : 'text-amber-300'}`}>{appointment.patientName}</div>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center">
           <div className="flex items-center gap-3 text-slate-400">
             <span className="text-base font-mono">{appointment.session}</span>
             <button
@@ -317,7 +317,7 @@ const AppointmentRow: React.FC<{
                       onSelectAppointment(appointment);
                       onSetLastClickedPatientName(appointment.patientName);
                   }}
-                  className="p-1.5 rounded-full hover:bg-slate-600 transition-colors"
+                  className="p-1.5 rounded-full hover:bg-slate-600 transition-colors ml-6"
                   aria-label={`Ver observación activa para ${appointment.patientName}`}
                   title="Observación activa. Click para ver o editar."
               >
