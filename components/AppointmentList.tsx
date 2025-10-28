@@ -307,7 +307,7 @@ const AppointmentRow: React.FC<{
                   aria-label={`Ver observación activa para ${appointment.patientName}`}
                   title="Observación activa. Click para ver o editar."
               >
-                  <div className="w-5 h-5 bg-amber-600 rounded-full"></div>
+                  <div className="w-5 h-5 bg-fuchsia-500 rounded-full"></div>
               </button>
           )}
           <button
