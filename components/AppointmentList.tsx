@@ -294,8 +294,22 @@ const AppointmentRow: React.FC<{
           <div className={`font-semibold truncate text-xl ml-12 ${isMultiBooked ? 'text-red-400' : 'text-amber-300'}`}>{appointment.patientName}</div>
         </div>
 
-        <div className="flex items-center gap-3 text-slate-400">
-          <span className="text-base font-mono">{appointment.session}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 text-slate-400">
+            <span className="text-base font-mono">{appointment.session}</span>
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onHighlightPatient(appointment.patientId, appointment.time);
+                    onSetLastClickedPatientName(appointment.patientName);
+                }}
+                className="p-1.5 rounded-full hover:bg-slate-600 transition-colors"
+                aria-label={`Resaltar turnos de ${appointment.patientName} y ver disponibilidad`}
+                title={`Resaltar turnos del paciente y ver disponibilidad semanal para este horario.`}
+            >
+                <div className="w-5 h-5 bg-indigo-400 rounded-full"></div>
+            </button>
+          </div>
           {appointment.observations && (
               <button
                   onClick={(e) => {
@@ -310,18 +324,6 @@ const AppointmentRow: React.FC<{
                   <div className="w-5 h-5 bg-fuchsia-500 rounded-full"></div>
               </button>
           )}
-          <button
-              onClick={(e) => {
-                  e.stopPropagation();
-                  onHighlightPatient(appointment.patientId, appointment.time);
-                  onSetLastClickedPatientName(appointment.patientName);
-              }}
-              className="p-1.5 rounded-full hover:bg-slate-600 transition-colors"
-              aria-label={`Resaltar turnos de ${appointment.patientName} y ver disponibilidad`}
-              title={`Resaltar turnos del paciente y ver disponibilidad semanal para este horario.`}
-          >
-              <div className="w-5 h-5 bg-indigo-400 rounded-full"></div>
-          </button>
         </div>
         <div className="flex justify-end items-center gap-3">
           <button
