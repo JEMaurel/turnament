@@ -8,6 +8,7 @@ export interface Patient {
   treatment?: string;
   diagnosis?: string;
   observations?: string;
+  estudios?: string;
   clinicalHistory?: string;
   driveUrl?: string;
   insuranceIdIsPriority?: boolean;

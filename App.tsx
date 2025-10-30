@@ -193,6 +193,7 @@ const AppointmentModal: React.FC<{
     const [doctor, setDoctor] = useState('');
     const [treatment, setTreatment] = useState('');
     const [diagnosis, setDiagnosis] = useState('');
+    const [estudios, setEstudios] = useState('');
     const [observations, setObservations] = useState('');
     const [clinicalHistory, setClinicalHistory] = useState('');
     const [recurringDays, setRecurringDays] = useState<number[]>([]);
@@ -204,6 +205,25 @@ const AppointmentModal: React.FC<{
     const [isInsuranceIdCopied, setIsInsuranceIdCopied] = useState(false);
     const [initialFormData, setInitialFormData] = useState<Record<string, any> | null>(null);
     
+    const driveUrlExists = useMemo(() => {
+        const currentPatient = existingPatient || (patientId ? patients.find(p => p.id === patientId) : null);
+        return !!(currentPatient && currentPatient.driveUrl && currentPatient.driveUrl.trim());
+    }, [existingPatient, patientId, patients]);
+
+    const handleOpenDriveUrl = () => {
+        const currentPatient = existingPatient || (patientId ? patients.find(p => p.id === patientId) : null);
+        
+        if (driveUrlExists && currentPatient) {
+            let url = currentPatient.driveUrl!.trim();
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+            window.open(url, '_blank', 'noopener,noreferrer');
+        } else {
+            alert('este paciente no tiene una url "propia" configurada en accesos directos.');
+        }
+    };
+
     useEffect(() => {
         if (isOpen) {
             let data;
@@ -218,6 +238,7 @@ const AppointmentModal: React.FC<{
                     doctor: existingPatient.doctor || '',
                     treatment: existingPatient.treatment || '',
                     diagnosis: existingPatient.diagnosis || '',
+                    estudios: existingPatient.estudios || '',
                     observations: existingPatient.observations || '',
                     clinicalHistory: existingPatient.clinicalHistory || '',
                     recurringDays: [],
@@ -234,6 +255,7 @@ const AppointmentModal: React.FC<{
                 setDoctor(formData.doctor);
                 setTreatment(formData.treatment);
                 setDiagnosis(formData.diagnosis);
+                setEstudios(formData.estudios);
                 setObservations(formData.observations);
                 setClinicalHistory(formData.clinicalHistory);
                 setRecurringDays(formData.recurringDays);
@@ -255,6 +277,7 @@ const AppointmentModal: React.FC<{
                     doctor: '',
                     treatment: '',
                     diagnosis: '',
+                    estudios: '',
                     observations: '',
                     clinicalHistory: '',
                     recurringDays: [],
@@ -271,6 +294,7 @@ const AppointmentModal: React.FC<{
                 setDoctor(formData.doctor);
                 setTreatment(formData.treatment);
                 setDiagnosis(formData.diagnosis);
+                setEstudios(formData.estudios);
                 setObservations(formData.observations);
                 setClinicalHistory(formData.clinicalHistory);
                 setRecurringDays(formData.recurringDays);
@@ -296,6 +320,7 @@ const AppointmentModal: React.FC<{
             setDoctor(patient.doctor || '');
             setTreatment(patient.treatment || '');
             setDiagnosis(patient.diagnosis || '');
+            setEstudios(patient.estudios || '');
             setObservations(patient.observations || '');
             setClinicalHistory(patient.clinicalHistory || '');
             setInsuranceIdIsPriority(patient.insuranceIdIsPriority || false);
@@ -320,13 +345,14 @@ const AppointmentModal: React.FC<{
             initialFormData.doctor !== doctor ||
             initialFormData.treatment !== treatment ||
             initialFormData.diagnosis !== diagnosis ||
+            initialFormData.estudios !== estudios ||
             initialFormData.observations !== observations ||
             initialFormData.clinicalHistory !== clinicalHistory ||
             initialFormData.recurringWeeks !== recurringWeeks ||
             initialFormData.insuranceIdIsPriority !== insuranceIdIsPriority ||
             initialRecurringDays !== currentRecurringDays
         );
-    }, [initialFormData, time, patientName, session, insurance, insuranceId, dni, doctor, treatment, diagnosis, observations, clinicalHistory, recurringDays, recurringWeeks, insuranceIdIsPriority]);
+    }, [initialFormData, time, patientName, session, insurance, insuranceId, dni, doctor, treatment, diagnosis, estudios, observations, clinicalHistory, recurringDays, recurringWeeks, insuranceIdIsPriority]);
 
 
     const handleSave = () => {
@@ -363,7 +389,7 @@ const AppointmentModal: React.FC<{
             dni: dni.trim(),
             insurance,
             insuranceId: insuranceId.trim(),
-            doctor, treatment, diagnosis, observations,
+            doctor, treatment, diagnosis, estudios, observations,
             clinicalHistory,
             driveUrl: existingPatient?.driveUrl || '',
             insuranceIdIsPriority,
@@ -482,14 +508,43 @@ const AppointmentModal: React.FC<{
                     </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-300">obra social</label>
                         <input type="text" value={insurance} onChange={e => setInsurance(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300">médico derivante</label>
-                        <input type="text" value={doctor} onChange={e => setDoctor(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
+                    <div className="col-span-2">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300">médico derivante</label>
+                                <input type="text" value={doctor} onChange={e => setDoctor(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300">estudios</label>
+                                <div className="relative flex items-center mt-1">
+                                    <input
+                                        type="text"
+                                        value={estudios}
+                                        onChange={e => setEstudios(e.target.value)}
+                                        placeholder="ej: rx"
+                                        maxLength={4}
+                                        className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 pr-10"
+                                    />
+                                    <button
+                                        onClick={handleOpenDriveUrl}
+                                        disabled={!driveUrlExists}
+                                        className="absolute inset-y-0 right-0 flex items-center pr-2 text-slate-400 hover:text-white transition-colors disabled:text-slate-600 disabled:cursor-not-allowed"
+                                        aria-label="abrir carpeta de estudios del paciente"
+                                        title="abrir carpeta de estudios"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                          <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                          <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -649,6 +704,7 @@ const PatientRegistryModal: React.FC<{
                             <PatientDetail label="obra social" value={selectedPatient.insurance} />
                             <PatientDetail label="médico derivante" value={selectedPatient.doctor} />
                             <PatientDetail label="tratamiento" value={selectedPatient.treatment} />
+                            <PatientDetail label="estudios" value={selectedPatient.estudios} />
                             <PatientDetail label="diagnóstico (dx)" value={selectedPatient.diagnosis} />
                             <PatientDetail label="historia clínica" value={selectedPatient.clinicalHistory} />
                             <PatientDetail label="observaciones (obs)" value={selectedPatient.observations} />
