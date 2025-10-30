@@ -194,6 +194,7 @@ const AppointmentModal: React.FC<{
     const [treatment, setTreatment] = useState('');
     const [diagnosis, setDiagnosis] = useState('');
     const [observations, setObservations] = useState('');
+    const [clinicalHistory, setClinicalHistory] = useState('');
     const [recurringDays, setRecurringDays] = useState<number[]>([]);
     const [recurringWeeks, setRecurringWeeks] = useState(3);
     const [insuranceIdIsPriority, setInsuranceIdIsPriority] = useState(false);
@@ -218,6 +219,7 @@ const AppointmentModal: React.FC<{
                     treatment: existingPatient.treatment || '',
                     diagnosis: existingPatient.diagnosis || '',
                     observations: existingPatient.observations || '',
+                    clinicalHistory: existingPatient.clinicalHistory || '',
                     recurringDays: [],
                     recurringWeeks: 0,
                     insuranceIdIsPriority: existingPatient.insuranceIdIsPriority || false,
@@ -233,6 +235,7 @@ const AppointmentModal: React.FC<{
                 setTreatment(formData.treatment);
                 setDiagnosis(formData.diagnosis);
                 setObservations(formData.observations);
+                setClinicalHistory(formData.clinicalHistory);
                 setRecurringDays(formData.recurringDays);
                 setRecurringWeeks(formData.recurringWeeks);
                 setInsuranceIdIsPriority(formData.insuranceIdIsPriority);
@@ -253,6 +256,7 @@ const AppointmentModal: React.FC<{
                     treatment: '',
                     diagnosis: '',
                     observations: '',
+                    clinicalHistory: '',
                     recurringDays: [],
                     recurringWeeks: 3,
                     insuranceIdIsPriority: false,
@@ -268,6 +272,7 @@ const AppointmentModal: React.FC<{
                 setTreatment(formData.treatment);
                 setDiagnosis(formData.diagnosis);
                 setObservations(formData.observations);
+                setClinicalHistory(formData.clinicalHistory);
                 setRecurringDays(formData.recurringDays);
                 setRecurringWeeks(formData.recurringWeeks);
                 setInsuranceIdIsPriority(formData.insuranceIdIsPriority);
@@ -292,6 +297,7 @@ const AppointmentModal: React.FC<{
             setTreatment(patient.treatment || '');
             setDiagnosis(patient.diagnosis || '');
             setObservations(patient.observations || '');
+            setClinicalHistory(patient.clinicalHistory || '');
             setInsuranceIdIsPriority(patient.insuranceIdIsPriority || false);
         } else {
             setPatientId(null);
@@ -315,11 +321,12 @@ const AppointmentModal: React.FC<{
             initialFormData.treatment !== treatment ||
             initialFormData.diagnosis !== diagnosis ||
             initialFormData.observations !== observations ||
+            initialFormData.clinicalHistory !== clinicalHistory ||
             initialFormData.recurringWeeks !== recurringWeeks ||
             initialFormData.insuranceIdIsPriority !== insuranceIdIsPriority ||
             initialRecurringDays !== currentRecurringDays
         );
-    }, [initialFormData, time, patientName, session, insurance, insuranceId, dni, doctor, treatment, diagnosis, observations, recurringDays, recurringWeeks, insuranceIdIsPriority]);
+    }, [initialFormData, time, patientName, session, insurance, insuranceId, dni, doctor, treatment, diagnosis, observations, clinicalHistory, recurringDays, recurringWeeks, insuranceIdIsPriority]);
 
 
     const handleSave = () => {
@@ -357,6 +364,7 @@ const AppointmentModal: React.FC<{
             insurance,
             insuranceId: insuranceId.trim(),
             doctor, treatment, diagnosis, observations,
+            clinicalHistory,
             driveUrl: existingPatient?.driveUrl || '',
             insuranceIdIsPriority,
         };
@@ -460,12 +468,18 @@ const AppointmentModal: React.FC<{
                 )}
                 
                 <h4 className="text-lg font-semibold text-cyan-400 border-b border-slate-700 pb-2 pt-4">datos del paciente</h4>
-                <div>
-                    <label className="block text-sm font-medium text-slate-300">nombre del paciente</label>
-                    <input ref={patientNameInputRef} type="text" list="patients-list" value={patientName} onChange={e => handlePatientSelect(e.target.value)} placeholder="escriba o seleccione un paciente" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1 focus:ring-cyan-500 focus:border-cyan-500"/>
-                    <datalist id="patients-list">
-                        {patients.map(p => <option key={p.id} value={p.name} />)}
-                    </datalist>
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="col-span-2">
+                        <label className="block text-sm font-medium text-slate-300">nombre del paciente</label>
+                        <input ref={patientNameInputRef} type="text" list="patients-list" value={patientName} onChange={e => handlePatientSelect(e.target.value)} placeholder="escriba o seleccione un paciente" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1 focus:ring-cyan-500 focus:border-cyan-500"/>
+                        <datalist id="patients-list">
+                            {patients.map(p => <option key={p.id} value={p.name} />)}
+                        </datalist>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300">tratamiento</label>
+                        <input type="text" value={treatment} onChange={e => setTreatment(e.target.value)} placeholder="ej: kine, rpg" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
+                    </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -559,13 +573,13 @@ const AppointmentModal: React.FC<{
                 </div>
                 
                 <div>
-                    <label className="block text-sm font-medium text-slate-300">tratamiento</label>
-                    <textarea value={treatment} onChange={e => setTreatment(e.target.value)} rows={2} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"></textarea>
+                    <label className="block text-sm font-medium text-slate-300">diagnóstico (dx)</label>
+                    <textarea value={diagnosis} onChange={e => setDiagnosis(e.target.value)} rows={1} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-slate-300">diagnóstico (dx)</label>
-                    <textarea value={diagnosis} onChange={e => setDiagnosis(e.target.value)} rows={1} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"/>
+                    <label className="block text-sm font-medium text-slate-300">historia clínica</label>
+                    <textarea value={clinicalHistory} onChange={e => setClinicalHistory(e.target.value)} rows={3} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 mt-1"></textarea>
                 </div>
 
                  <div>
@@ -636,6 +650,7 @@ const PatientRegistryModal: React.FC<{
                             <PatientDetail label="médico derivante" value={selectedPatient.doctor} />
                             <PatientDetail label="tratamiento" value={selectedPatient.treatment} />
                             <PatientDetail label="diagnóstico (dx)" value={selectedPatient.diagnosis} />
+                            <PatientDetail label="historia clínica" value={selectedPatient.clinicalHistory} />
                             <PatientDetail label="observaciones (obs)" value={selectedPatient.observations} />
                         </div>
                     </div>
